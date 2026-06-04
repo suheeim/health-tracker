@@ -864,50 +864,47 @@ function analyzeImage(base64Data, mimeType, idx, callback) {
     }]
   });
 
-  var xhr = new XMLHttpRequest();
-  xhr.open('POST', 'https://api.anthropic.com/v1/messages', true);
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.setRequestHeader('x-api-key', apiKey);
-  xhr.setRequestHeader('anthropic-version', '2023-06-01');
-  xhr.setRequestHeader('anthropic-dangerous-direct-browser-access', 'true');
-  xhr.timeout = 60000;
+  var controller = new AbortController();
+  var timeoutId = setTimeout(function() { controller.abort(); }, 60000);
 
-  xhr.onload = function() {
-    try {
-      var data = JSON.parse(xhr.responseText);
-      if (data.error) throw new Error(data.error.message || 'API error');
-      var text = data.content && data.content[0] ? data.content[0].text : '';
-      var json = text.replace(/```json|```/g, '').trim();
-      var rec = JSON.parse(json);
-      rec.id = Date.now() + idx;
-      var statusEl = document.getElementById('status-' + idx);
-      if (statusEl) {
-        statusEl.className = 'preview-status status-done';
-        statusEl.textContent = '✅ ' + (rec.date || '') + ' ' + (rec.time || '');
-      }
-      callback(rec);
-    } catch(e) {
-      console.error('Parse error:', e, xhr.responseText);
-      var statusEl = document.getElementById('status-' + idx);
-      if (statusEl) { statusEl.className = 'preview-status status-error'; statusEl.textContent = '❌ ' + e.message; }
-      callback(null);
+  fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: body,
+    signal: controller.signal
+  })
+  .then(function(r) {
+    clearTimeout(timeoutId);
+    return r.json();
+  })
+  .then(function(data) {
+    if (data.error) throw new Error(data.error.message || 'API error');
+    var text = data.content && data.content[0] ? data.content[0].text : '';
+    var json = text.replace(/```json|```/g, '').trim();
+    var rec = JSON.parse(json);
+    rec.id = Date.now() + idx;
+    var statusEl = document.getElementById('status-' + idx);
+    if (statusEl) {
+      statusEl.className = 'preview-status status-done';
+      statusEl.textContent = '✅ ' + (rec.date || '') + ' ' + (rec.time || '');
     }
-  };
-
-  xhr.onerror = function() {
-    console.error('XHR error:', xhr.status, xhr.statusText);
+    callback(rec);
+  })
+  .catch(function(e) {
+    clearTimeout(timeoutId);
+    console.error('Fetch error:', e);
     var statusEl = document.getElementById('status-' + idx);
-    if (statusEl) { statusEl.className = 'preview-status status-error'; statusEl.textContent = '❌ 通信エラー (status:' + xhr.status + ')'; }
+    if (statusEl) {
+      statusEl.className = 'preview-status status-error';
+      statusEl.textContent = e.name === 'AbortError' ? '❌ タイムアウト' : '❌ ' + e.message;
+    }
     callback(null);
-  };
-
-  xhr.ontimeout = function() {
-    var statusEl = document.getElementById('status-' + idx);
-    if (statusEl) { statusEl.className = 'preview-status status-error'; statusEl.textContent = '❌ タイムアウト'; }
-    callback(null);
-  };
-
-  xhr.send(body);
+  });
 }
 
 function showAnalyzeResults() {
