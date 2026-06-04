@@ -7,7 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>体組成記録</title>
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="体組成記録">
@@ -39,16 +40,16 @@ html, body { overflow-x: hidden; }
 body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; max-width: 480px; margin: 0 auto; padding-bottom: 30px; }
 
 /* ヘッダー */
-.header { background: linear-gradient(135deg, var(--primary) 0%, #1E40AF 100%); color: #fff; padding: 52px 20px 18px; }
-.header h1 { font-size: 20px; font-weight: 700; }
+.header { background: linear-gradient(135deg, var(--primary) 0%, #1E40AF 100%); color: #fff; padding: 12px 20px 10px; position: fixed; top: 0; left: 0; right: 0; z-index: 200; max-width: 480px; margin: 0 auto; height: 46px; display: flex; align-items: center; }
+.header h1 { font-size: 17px; font-weight: 700; line-height: 1; }
 
 /* タブバー */
-.tab-bar { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow); }
+.tab-bar { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); position: fixed; top: 46px; left: 0; right: 0; z-index: 100; box-shadow: var(--shadow); max-width: 480px; margin: 0 auto; }
 .tab-btn { flex: 1; padding: 13px 4px; border: none; background: transparent; font-family: 'Noto Sans JP', sans-serif; font-size: 13px; font-weight: 500; color: var(--text3); cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; }
 .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 700; }
 
 /* セクション */
-.screen { display: none; padding: 16px; }
+.screen { display: none; padding: 16px; padding-top: 106px; }
 .screen.active { display: block; }
 
 /* カード */
