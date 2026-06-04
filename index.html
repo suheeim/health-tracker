@@ -950,8 +950,20 @@ function saveAnalyzedData() {
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js').then(function() {
-      console.log('SW registered');
+    // 既存のSWを全て解除してからキャッシュも削除し、新しいものを登録
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+      var unregisterAll = registrations.map(function(reg) { return reg.unregister(); });
+      return Promise.all(unregisterAll);
+    }).then(function() {
+      return caches.keys();
+    }).then(function(keys) {
+      return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+    }).then(function() {
+      return navigator.serviceWorker.register('sw.js');
+    }).then(function(reg) {
+      console.log('SW registered fresh:', reg.scope);
+    }).catch(function(e) {
+      console.warn('SW error:', e);
     });
   });
 }
