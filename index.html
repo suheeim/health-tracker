@@ -750,6 +750,141 @@ window.addEventListener('load', function() {
   loadI18n(applyI18n);
   loadRecords(function() {});
 });
+
+// ===== アップロード・解析機能 =====
+var analyzedRecords = [];
+
+function handleImages(files) {
+  if (!files || files.length === 0) return;
+  var list = document.getElementById('imagePreviewList');
+  list.innerHTML = '';
+  analyzedRecords = [];
+  document.getElementById('analyzeResult').style.display = 'none';
+
+  var fileArr = Array.from(files);
+  var pending = fileArr.length;
+
+  fileArr.forEach(function(file, idx) {
+    var item = document.createElement('div');
+    item.className = 'preview-item';
+    item.id = 'preview-' + idx;
+
+    var img = document.createElement('img');
+    img.className = 'preview-img';
+
+    var status = document.createElement('div');
+    status.id = 'status-' + idx;
+    status.className = 'preview-status status-analyzing';
+    status.textContent = t('analyzing') || '解析中...';
+
+    item.appendChild(img);
+    item.appendChild(status);
+    list.appendChild(item);
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      img.src = e.target.result;
+      var base64 = e.target.result.split(',')[1];
+      var mimeType = file.type || 'image/jpeg';
+      analyzeImage(base64, mimeType, idx, function(rec) {
+        pending--;
+        analyzedRecords.push(rec);
+        if (pending === 0) showAnalyzeResults();
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function analyzeImage(base64Data, mimeType, idx, callback) {
+  var prompt = 'この画像は体組成計アプリのデータ画面です。以下の項目の数値を読み取ってJSON形式のみで返してください。項目が見つからない場合はnullにしてください。日付と時刻も読み取ってください。\n\n返却形式（JSONのみ）:\n{"date":"YYYY-MM-DD","time":"HH:MM","weight":null,"bmi":null,"fat-pct":null,"fat-mass":null,"obesity-pct":null,"visceral-fat":null,"muscle-mass":null,"bmr":null,"right-leg-fat":null,"right-leg-muscle":null,"left-leg-fat":null,"left-leg-muscle":null,"right-arm-fat":null,"right-arm-muscle":null,"left-arm-fat":null,"left-arm-muscle":null,"trunk-fat":null,"trunk-muscle":null}';
+
+  fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64Data } },
+          { type: 'text', text: prompt }
+        ]
+      }]
+    })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    var text = data.content && data.content[0] ? data.content[0].text : '';
+    var json = text.replace(/```json|```/g, '').trim();
+    var rec = JSON.parse(json);
+    rec.id = Date.now() + idx;
+    var statusEl = document.getElementById('status-' + idx);
+    if (statusEl) {
+      statusEl.className = 'preview-status status-done';
+      statusEl.textContent = '✅ ' + (rec.date || '') + ' ' + (rec.time || '');
+    }
+    callback(rec);
+  })
+  .catch(function(e) {
+    console.error('Analyze error:', e);
+    var statusEl = document.getElementById('status-' + idx);
+    if (statusEl) {
+      statusEl.className = 'preview-status status-error';
+      statusEl.textContent = t('analyze_error') || '解析エラー';
+    }
+    callback(null);
+  });
+}
+
+function showAnalyzeResults() {
+  var valid = analyzedRecords.filter(function(r) { return r !== null; });
+  if (valid.length === 0) return;
+
+  var labelMap = {
+    'weight': t('weight') + ' (kg)', 'bmi': 'BMI',
+    'fat-pct': t('fat_pct') + ' (%)', 'fat-mass': t('fat_mass') + ' (kg)',
+    'obesity-pct': t('obesity_pct') + ' (%)', 'visceral-fat': t('visceral_fat'),
+    'muscle-mass': t('muscle_mass') + ' (kg)', 'bmr': t('bmr') + ' (kcal)',
+    'right-leg-fat': t('right_leg_fat') + ' (kg)', 'right-leg-muscle': t('right_leg_muscle') + ' (kg)',
+    'left-leg-fat': t('left_leg_fat') + ' (kg)', 'left-leg-muscle': t('left_leg_muscle') + ' (kg)',
+    'right-arm-fat': t('right_arm_fat') + ' (kg)', 'right-arm-muscle': t('right_arm_muscle') + ' (kg)',
+    'left-arm-fat': t('left_arm_fat') + ' (kg)', 'left-arm-muscle': t('left_arm_muscle') + ' (kg)',
+    'trunk-fat': t('trunk_fat') + ' (kg)', 'trunk-muscle': t('trunk_muscle') + ' (kg)',
+  };
+
+  var FIELDS_ORDER = ['weight','bmi','fat-pct','fat-mass','obesity-pct','visceral-fat','muscle-mass','bmr','right-leg-fat','right-leg-muscle','left-leg-fat','left-leg-muscle','right-arm-fat','right-arm-muscle','left-arm-fat','left-arm-muscle','trunk-fat','trunk-muscle'];
+  var html = '';
+  valid.forEach(function(rec) {
+    html += '<div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">';
+    html += '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px">📅 ' + (rec.date || '-') + ' ' + (rec.time || '') + '</div>';
+    html += '<div class="modal-detail-grid">';
+    FIELDS_ORDER.forEach(function(k) {
+      html += '<div class="modal-detail-item">'
+        + '<div class="modal-detail-label">' + (labelMap[k] || k) + '</div>'
+        + '<div class="modal-detail-value">' + (rec[k] != null ? rec[k] : '-') + '</div>'
+        + '</div>';
+    });
+    html += '</div></div>';
+  });
+
+  document.getElementById('analyzeDataPreview').innerHTML = html;
+  document.getElementById('analyzeResult').style.display = 'block';
+}
+
+function saveAnalyzedData() {
+  var valid = analyzedRecords.filter(function(r) { return r !== null; });
+  if (valid.length === 0) return;
+  valid.forEach(function(rec) {
+    if (!rec.date) return;
+    saveRecords(rec);
+  });
+  document.getElementById('imagePreviewList').innerHTML = '';
+  document.getElementById('analyzeResult').style.display = 'none';
+  document.getElementById('imageUpload').value = '';
+  analyzedRecords = [];
+}
 </script>
 <script>
 if ('serviceWorker' in navigator) {
