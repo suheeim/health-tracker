@@ -298,6 +298,19 @@ canvas { width: 100% !important; }
 
 <!-- アップロード画面 -->
 <div id="screen-upload" class="screen">
+  <!-- APIキー入力 -->
+  <div class="card" id="apiKeyCard">
+    <div class="section-title">🔑 Anthropic APIキー設定</div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:10px">画像解析にはAnthropicのAPIキーが必要です。キーは端末内にのみ保存されます。</p>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="input-wrap" style="flex:1">
+        <input type="password" id="anthropicApiKey" class="data-input" placeholder="sk-ant-..." style="font-size:13px;font-weight:400;text-align:left;" oninput="saveApiKey()">
+      </div>
+      <button onclick="toggleApiKeyVisibility()" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-size:14px;cursor:pointer;">👁</button>
+    </div>
+    <div id="apiKeyStatus" style="font-size:11px;margin-top:6px;color:var(--text3);">未設定</div>
+  </div>
+
   <div class="card">
     <div class="section-title" id="t-upload-title">画像から自動入力</div>
     <p style="font-size:13px;color:var(--text2);margin-bottom:14px" id="t-upload-desc">体組成計アプリのスクリーンショットを選択してください</p>
@@ -749,6 +762,7 @@ window.addEventListener('load', function() {
   document.getElementById('inputDate').value = getTodayStr();
   loadI18n(applyI18n);
   loadRecords(function() {});
+  loadApiKey();
 });
 
 // ===== アップロード・解析機能 =====
@@ -796,12 +810,55 @@ function handleImages(files) {
   });
 }
 
+function saveApiKey() {
+  var key = document.getElementById('anthropicApiKey').value.trim();
+  if (key) {
+    localStorage.setItem('anthropic_api_key', key);
+    document.getElementById('apiKeyStatus').textContent = '✅ 設定済み（' + key.substring(0, 10) + '...）';
+    document.getElementById('apiKeyStatus').style.color = 'var(--accent)';
+  } else {
+    localStorage.removeItem('anthropic_api_key');
+    document.getElementById('apiKeyStatus').textContent = '未設定';
+    document.getElementById('apiKeyStatus').style.color = 'var(--text3)';
+  }
+}
+
+function toggleApiKeyVisibility() {
+  var input = document.getElementById('anthropicApiKey');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+function loadApiKey() {
+  var saved = localStorage.getItem('anthropic_api_key');
+  if (saved) {
+    document.getElementById('anthropicApiKey').value = saved;
+    document.getElementById('apiKeyStatus').textContent = '✅ 設定済み（' + saved.substring(0, 10) + '...）';
+    document.getElementById('apiKeyStatus').style.color = 'var(--accent)';
+  }
+}
+
 function analyzeImage(base64Data, mimeType, idx, callback) {
-  var prompt = 'この画像は体組成計アプリのデータ画面です。以下の項目の数値を読み取ってJSON形式のみで返してください。項目が見つからない場合はnullにしてください。日付と時刻も読み取ってください。\n\n返却形式（JSONのみ）:\n{"date":"YYYY-MM-DD","time":"HH:MM","weight":null,"bmi":null,"fat-pct":null,"fat-mass":null,"obesity-pct":null,"visceral-fat":null,"muscle-mass":null,"bmr":null,"right-leg-fat":null,"right-leg-muscle":null,"left-leg-fat":null,"left-leg-muscle":null,"right-arm-fat":null,"right-arm-muscle":null,"left-arm-fat":null,"left-arm-muscle":null,"trunk-fat":null,"trunk-muscle":null}';
+  var apiKey = localStorage.getItem('anthropic_api_key') || '';
+  if (!apiKey) {
+    var statusEl = document.getElementById('status-' + idx);
+    if (statusEl) {
+      statusEl.className = 'preview-status status-error';
+      statusEl.textContent = '❌ APIキーが未設定です';
+    }
+    callback(null);
+    return;
+  }
+
+  var prompt = 'この画像は体組成計アプリのデータ画面です。以下の項目の数値を読み取ってJSON形式のみで返してください。項目が見つからない場合はnullにしてください。日付と時刻も読み取ってください。\n\n返却形式（JSONのみ、前後に余計なテキスト不要）:\n{"date":"YYYY-MM-DD","time":"HH:MM","weight":null,"bmi":null,"fat-pct":null,"fat-mass":null,"obesity-pct":null,"visceral-fat":null,"muscle-mass":null,"bmr":null,"right-leg-fat":null,"right-leg-muscle":null,"left-leg-fat":null,"left-leg-muscle":null,"right-arm-fat":null,"right-arm-muscle":null,"left-arm-fat":null,"left-arm-muscle":null,"trunk-fat":null,"trunk-muscle":null}';
 
   fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
@@ -816,6 +873,9 @@ function analyzeImage(base64Data, mimeType, idx, callback) {
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
+    if (data.error) {
+      throw new Error(data.error.message || 'API error');
+    }
     var text = data.content && data.content[0] ? data.content[0].text : '';
     var json = text.replace(/```json|```/g, '').trim();
     var rec = JSON.parse(json);
@@ -832,7 +892,7 @@ function analyzeImage(base64Data, mimeType, idx, callback) {
     var statusEl = document.getElementById('status-' + idx);
     if (statusEl) {
       statusEl.className = 'preview-status status-error';
-      statusEl.textContent = t('analyze_error') || '解析エラー';
+      statusEl.textContent = '❌ ' + (e.message || '解析エラー');
     }
     callback(null);
   });
