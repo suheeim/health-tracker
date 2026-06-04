@@ -852,51 +852,62 @@ function analyzeImage(base64Data, mimeType, idx, callback) {
 
   var prompt = 'この画像は体組成計アプリのデータ画面です。以下の項目の数値を読み取ってJSON形式のみで返してください。項目が見つからない場合はnullにしてください。日付と時刻も読み取ってください。\n\n返却形式（JSONのみ、前後に余計なテキスト不要）:\n{"date":"YYYY-MM-DD","time":"HH:MM","weight":null,"bmi":null,"fat-pct":null,"fat-mass":null,"obesity-pct":null,"visceral-fat":null,"muscle-mass":null,"bmr":null,"right-leg-fat":null,"right-leg-muscle":null,"left-leg-fat":null,"left-leg-muscle":null,"right-arm-fat":null,"right-arm-muscle":null,"left-arm-fat":null,"left-arm-muscle":null,"trunk-fat":null,"trunk-muscle":null}';
 
-  fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64Data } },
-          { type: 'text', text: prompt }
-        ]
-      }]
-    })
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    if (data.error) {
-      throw new Error(data.error.message || 'API error');
-    }
-    var text = data.content && data.content[0] ? data.content[0].text : '';
-    var json = text.replace(/```json|```/g, '').trim();
-    var rec = JSON.parse(json);
-    rec.id = Date.now() + idx;
-    var statusEl = document.getElementById('status-' + idx);
-    if (statusEl) {
-      statusEl.className = 'preview-status status-done';
-      statusEl.textContent = '✅ ' + (rec.date || '') + ' ' + (rec.time || '');
-    }
-    callback(rec);
-  })
-  .catch(function(e) {
-    console.error('Analyze error:', e);
-    var statusEl = document.getElementById('status-' + idx);
-    if (statusEl) {
-      statusEl.className = 'preview-status status-error';
-      statusEl.textContent = '❌ ' + (e.message || '解析エラー');
-    }
-    callback(null);
+  var body = JSON.stringify({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1000,
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64Data } },
+        { type: 'text', text: prompt }
+      ]
+    }]
   });
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', 'https://api.anthropic.com/v1/messages', true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('x-api-key', apiKey);
+  xhr.setRequestHeader('anthropic-version', '2023-06-01');
+  xhr.setRequestHeader('anthropic-dangerous-direct-browser-access', 'true');
+  xhr.timeout = 60000;
+
+  xhr.onload = function() {
+    try {
+      var data = JSON.parse(xhr.responseText);
+      if (data.error) throw new Error(data.error.message || 'API error');
+      var text = data.content && data.content[0] ? data.content[0].text : '';
+      var json = text.replace(/```json|```/g, '').trim();
+      var rec = JSON.parse(json);
+      rec.id = Date.now() + idx;
+      var statusEl = document.getElementById('status-' + idx);
+      if (statusEl) {
+        statusEl.className = 'preview-status status-done';
+        statusEl.textContent = '✅ ' + (rec.date || '') + ' ' + (rec.time || '');
+      }
+      callback(rec);
+    } catch(e) {
+      console.error('Parse error:', e, xhr.responseText);
+      var statusEl = document.getElementById('status-' + idx);
+      if (statusEl) { statusEl.className = 'preview-status status-error'; statusEl.textContent = '❌ ' + e.message; }
+      callback(null);
+    }
+  };
+
+  xhr.onerror = function() {
+    console.error('XHR error:', xhr.status, xhr.statusText);
+    var statusEl = document.getElementById('status-' + idx);
+    if (statusEl) { statusEl.className = 'preview-status status-error'; statusEl.textContent = '❌ 通信エラー (status:' + xhr.status + ')'; }
+    callback(null);
+  };
+
+  xhr.ontimeout = function() {
+    var statusEl = document.getElementById('status-' + idx);
+    if (statusEl) { statusEl.className = 'preview-status status-error'; statusEl.textContent = '❌ タイムアウト'; }
+    callback(null);
+  };
+
+  xhr.send(body);
 }
 
 function showAnalyzeResults() {
@@ -948,23 +959,13 @@ function saveAnalyzedData() {
 }
 </script>
 <script>
+// ServiceWorkerを完全に無効化・既存も全解除
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    // 既存のSWを全て解除してからキャッシュも削除し、新しいものを登録
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-      var unregisterAll = registrations.map(function(reg) { return reg.unregister(); });
-      return Promise.all(unregisterAll);
-    }).then(function() {
-      return caches.keys();
-    }).then(function(keys) {
-      return Promise.all(keys.map(function(k) { return caches.delete(k); }));
-    }).then(function() {
-      return navigator.serviceWorker.register('sw.js');
-    }).then(function(reg) {
-      console.log('SW registered fresh:', reg.scope);
-    }).catch(function(e) {
-      console.warn('SW error:', e);
-    });
+  navigator.serviceWorker.getRegistrations().then(function(regs) {
+    regs.forEach(function(r) { r.unregister(); });
+  });
+  caches.keys().then(function(keys) {
+    keys.forEach(function(k) { caches.delete(k); });
   });
 }
 </script>
