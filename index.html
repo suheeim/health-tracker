@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>体組成記録</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="体組成記録">
+<meta name="theme-color" content="#2563EB">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #2563EB;
+  --primary-dark: #1D4ED8;
+  --primary-light: #EFF6FF;
+  --accent: #10B981;
+  --accent-light: #ECFDF5;
+  --warn: #F59E0B;
+  --danger: #EF4444;
+  --bg: #F1F5F9;
+  --surface: #FFFFFF;
+  --surface2: #F8FAFC;
+  --border: rgba(0,0,0,0.08);
+  --text: #0F172A;
+  --text2: #475569;
+  --text3: #94A3B8;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { overflow-x: hidden; }
+body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; max-width: 480px; margin: 0 auto; padding-bottom: 30px; }
+
+/* ヘッダー */
+.header { background: linear-gradient(135deg, var(--primary) 0%, #1E40AF 100%); color: #fff; padding: 52px 20px 18px; }
+.header h1 { font-size: 20px; font-weight: 700; }
+
+/* タブバー */
+.tab-bar { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow); }
+.tab-btn { flex: 1; padding: 13px 4px; border: none; background: transparent; font-family: 'Noto Sans JP', sans-serif; font-size: 13px; font-weight: 500; color: var(--text3); cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; }
+.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 700; }
+
+/* セクション */
+.screen { display: none; padding: 16px; }
+.screen.active { display: block; }
+
+/* カード */
+.card { background: var(--surface); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow); }
+.section-title { font-size: 12px; font-weight: 700; color: var(--primary); letter-spacing: .08em; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--primary-light); }
+
+/* 入力行 */
+.input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.input-group { display: flex; flex-direction: column; gap: 4px; }
+.input-label { font-size: 11px; font-weight: 700; color: var(--text2); }
+.input-wrap { display: flex; align-items: center; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0 10px; gap: 4px; }
+.input-wrap:focus-within { border-color: var(--primary); background: var(--primary-light); }
+.data-input { flex: 1; font-size: 16px; font-weight: 700; color: var(--primary); text-align: center; padding: 10px 0; border: none; outline: none; background: transparent; font-family: 'Noto Sans JP', sans-serif; width: 100%; }
+.input-unit { font-size: 11px; color: var(--text3); white-space: nowrap; flex-shrink: 0; }
+
+/* 日付 */
+.date-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.date-input { flex: 1; font-size: 15px; font-weight: 700; color: var(--text); padding: 11px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface2); outline: none; font-family: 'Noto Sans JP', sans-serif; }
+.date-input:focus { border-color: var(--primary); }
+.date-label { font-size: 12px; color: var(--text2); font-weight: 700; white-space: nowrap; }
+
+/* ボタン */
+.btn-primary { width: 100%; padding: 15px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius); font-size: 16px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; transition: background .15s; margin-top: 4px; }
+.btn-primary:active { background: var(--primary-dark); }
+.btn-danger { background: var(--danger); color: #fff; border: none; border-radius: var(--radius-sm); padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; }
+
+/* 部位別グリッド */
+.parts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.part-card { background: var(--surface2); border-radius: var(--radius-sm); padding: 10px; border: 1px solid var(--border); }
+.part-title { font-size: 11px; font-weight: 700; color: var(--primary); margin-bottom: 8px; text-align: center; }
+.part-row { display: flex; flex-direction: column; gap: 6px; }
+
+/* 履歴 */
+.history-item { background: var(--surface); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; box-shadow: var(--shadow); cursor: pointer; transition: transform .1s; }
+.history-item:active { transform: scale(.98); }
+.history-date { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+.history-badge { font-size: 10px; background: var(--accent-light); color: var(--accent); padding: 2px 8px; border-radius: 20px; font-weight: 700; }
+.history-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.history-stat { text-align: center; }
+.history-stat-label { font-size: 10px; color: var(--text3); }
+.history-stat-value { font-size: 14px; font-weight: 700; color: var(--primary); }
+.history-diff { font-size: 10px; font-weight: 700; }
+.diff-up { color: var(--danger); }
+.diff-down { color: var(--accent); }
+.diff-same { color: var(--text3); }
+
+/* グラフ */
+.graph-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.graph-tab { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text2); font-family: 'Noto Sans JP', sans-serif; transition: all .15s; }
+.graph-tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.chart-wrap { background: var(--surface); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); overflow: hidden; }
+canvas { width: 100% !important; }
+
+/* 空状態 */
+.empty { text-align: center; padding: 48px 20px; color: var(--text3); font-size: 14px; }
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.preview-item { background: var(--surface); border-radius: var(--radius); padding: 12px; margin-bottom: 10px; box-shadow: var(--shadow); }
+.preview-img { width: 100%; border-radius: var(--radius-sm); margin-bottom: 8px; max-height: 200px; object-fit: cover; }
+.preview-status { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px; display: inline-block; }
+.status-analyzing { background: #FEF3C7; color: #D97706; }
+.status-done { background: var(--accent-light); color: var(--accent); }
+.status-error { background: #FEE2E2; color: var(--danger); }
+
+/* 詳細モーダル */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; }
+.modal-overlay.active { display: flex; align-items: flex-end; }
+.modal { background: var(--surface); border-radius: 24px 24px 0 0; padding: 20px; width: 100%; max-height: 80vh; overflow-y: auto; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.modal-title { font-size: 16px; font-weight: 700; }
+.modal-close { background: var(--surface2); border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 16px; }
+.modal-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.modal-detail-item { background: var(--surface2); border-radius: var(--radius-sm); padding: 10px; }
+.modal-detail-label { font-size: 10px; color: var(--text3); margin-bottom: 2px; }
+.modal-detail-value { font-size: 15px; font-weight: 700; color: var(--primary); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1 id="t-app-name">💪 体組成記録</h1>
+</div>
+<div class="tab-bar">
+  <button class="tab-btn active" id="tab-input" onclick="switchTab('input')"><span id="t-tab-input">入力</span></button>
+  <button class="tab-btn" id="tab-history" onclick="switchTab('history')"><span id="t-tab-history">履歴</span></button>
+  <button class="tab-btn" id="tab-graph" onclick="switchTab('graph')"><span id="t-tab-graph">グラフ</span></button>
+  <button class="tab-btn" id="tab-upload" onclick="switchTab('upload')"><span id="t-tab-upload">アップロード</span></button>
+</div>
+
+<!-- 入力画面 -->
+<div id="screen-input" class="screen active">
+  <!-- 日付 -->
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="date-label" id="t-date-label">測定日</span>
+      <input type="date" class="date-input" id="inputDate">
+    </div>
+  </div>
+
+  <!-- 基本情報 -->
+  <div class="card">
+    <div class="section-title" id="t-section-basic">基本情報</div>
+    <div class="input-row">
+      <div class="input-group">
+        <span class="input-label" id="t-weight">体重</span>
+        <div class="input-wrap"><input class="data-input" id="f-weight" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">kg</span></div>
+      </div>
+      <div class="input-group">
+        <span class="input-label" id="t-bmi">BMI</span>
+        <div class="input-wrap"><input class="data-input" id="f-bmi" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 体脂肪 -->
+  <div class="card">
+    <div class="section-title" id="t-section-fat">体脂肪</div>
+    <div class="input-row">
+      <div class="input-group">
+        <span class="input-label" id="t-fat-pct">体脂肪率</span>
+        <div class="input-wrap"><input class="data-input" id="f-fat-pct" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">%</span></div>
+      </div>
+      <div class="input-group">
+        <span class="input-label" id="t-fat-mass">体脂肪量</span>
+        <div class="input-wrap"><input class="data-input" id="f-fat-mass" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">kg</span></div>
+      </div>
+    </div>
+    <div class="input-row">
+      <div class="input-group">
+        <span class="input-label" id="t-obesity-pct">%肥満度</span>
+        <div class="input-wrap"><input class="data-input" id="f-obesity-pct" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">%</span></div>
+      </div>
+      <div class="input-group">
+        <span class="input-label" id="t-visceral-fat">内臓脂肪率</span>
+        <div class="input-wrap"><input class="data-input" id="f-visceral-fat" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 筋肉・代謝 -->
+  <div class="card">
+    <div class="section-title" id="t-section-muscle">筋肉・代謝</div>
+    <div class="input-row">
+      <div class="input-group">
+        <span class="input-label" id="t-muscle-mass">筋肉量</span>
+        <div class="input-wrap"><input class="data-input" id="f-muscle-mass" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">kg</span></div>
+      </div>
+      <div class="input-group">
+        <span class="input-label" id="t-bmr">基礎代謝率</span>
+        <div class="input-wrap"><input class="data-input" id="f-bmr" type="number" inputmode="numeric" placeholder="0"><span class="input-unit">kcal</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 部位別 -->
+  <div class="card">
+    <div class="section-title" id="t-section-parts">部位別データ</div>
+    <div class="parts-grid">
+      <!-- 右脚 -->
+      <div class="part-card">
+        <div class="part-title" id="t-right-leg">右脚</div>
+        <div class="part-row">
+          <div class="input-group">
+            <span class="input-label" id="t-right-leg-fat">脂肪量</span>
+            <div class="input-wrap"><input class="data-input" id="f-right-leg-fat" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">kg</span></div>
+          </div>
+          <div class="input-group">
+            <span class="input-label" id="t-right-leg-muscle">筋肉量</span>
+            <div class="input-wrap"><input class="data-input" id="f-right-leg-muscle" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">kg</span></div>
+          </div>
+        </div>
+      </div>
+      <!-- 左脚 -->
+      <div class="part-card">
+        <div class="part-title" id="t-left-leg">左脚</div>
+        <div class="part-row">
+          <div class="input-group">
+            <span class="input-label" id="t-left-leg-fat">脂肪量</span>
+            <div class="input-wrap"><input class="data-input" id="f-left-leg-fat" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">kg</span></div>
+          </div>
+          <div class="input-group">
+            <span class="input-label" id="t-left-leg-muscle">筋肉量</span>
+            <div class="input-wrap"><input class="data-input" id="f-left-leg-muscle" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">kg</span></div>
+          </div>
+        </div>
+      </div>
+      <!-- 右腕 -->
+      <div class="part-card">
+        <div class="part-title" id="t-right-arm">右腕</div>
+        <div class="part-row">
+          <div class="input-group">
+            <span class="input-label" id="t-right-arm-fat">脂肪量</span>
+            <div class="input-wrap"><input class="data-input" id="f-right-arm-fat" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">kg</span></div>
+          </div>
+          <div class="input-group">
+            <span class="input-label" id="t-right-arm-muscle">筋肉量</span>
+            <div class="input-wrap"><input class="data-input" id="f-right-arm-muscle" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">kg</span></div>
+          </div>
+        </div>
+      </div>
+      <!-- 左腕 -->
+      <div class="part-card">
+        <div class="part-title" id="t-left-arm">左腕</div>
+        <div class="part-row">
+          <div class="input-group">
+            <span class="input-label" id="t-left-arm-fat">脂肪量</span>
+            <div class="input-wrap"><input class="data-input" id="f-left-arm-fat" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">kg</span></div>
+          </div>
+          <div class="input-group">
+            <span class="input-label" id="t-left-arm-muscle">筋肉量</span>
+            <div class="input-wrap"><input class="data-input" id="f-left-arm-muscle" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">kg</span></div>
+          </div>
+        </div>
+      </div>
+      <!-- 胴体 -->
+      <div class="part-card" style="grid-column:1/-1">
+        <div class="part-title" id="t-trunk">胴体</div>
+        <div class="input-row" style="margin-bottom:0">
+          <div class="input-group">
+            <span class="input-label" id="t-trunk-fat">脂肪量</span>
+            <div class="input-wrap"><input class="data-input" id="f-trunk-fat" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">kg</span></div>
+          </div>
+          <div class="input-group">
+            <span class="input-label" id="t-trunk-muscle">筋肉量</span>
+            <div class="input-wrap"><input class="data-input" id="f-trunk-muscle" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">kg</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-primary" onclick="saveData()" id="t-save-btn">保存</button>
+</div>
+
+<!-- 履歴画面 -->
+<div id="screen-history" class="screen">
+  <div id="historyList"></div>
+</div>
+
+<!-- グラフ画面 -->
+<div id="screen-graph" class="screen">
+  <div class="graph-tabs" id="graphTabs"></div>
+  <div class="chart-wrap">
+    <canvas id="myChart" height="240"></canvas>
+  </div>
+</div>
+
+
+<!-- アップロード画面 -->
+<div id="screen-upload" class="screen">
+  <div class="card">
+    <div class="section-title" id="t-upload-title">画像から自動入力</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px" id="t-upload-desc">体組成計アプリのスクリーンショットを選択してください</p>
+
+    <!-- アップロードエリア -->
+    <label for="imageUpload" style="display:block;border:2px dashed var(--border);border-radius:var(--radius);padding:24px;text-align:center;cursor:pointer;background:var(--surface2);transition:all .15s" id="uploadArea">
+      <div style="font-size:36px;margin-bottom:8px">📷</div>
+      <div style="font-size:14px;font-weight:700;color:var(--primary)" id="t-upload-btn">画像を選択</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">複数選択可</div>
+    </label>
+    <input type="file" id="imageUpload" accept="image/*" multiple style="display:none" onchange="handleImages(this.files)">
+  </div>
+
+  <!-- プレビューリスト -->
+  <div id="imagePreviewList"></div>
+
+  <!-- 解析結果 -->
+  <div id="analyzeResult" style="display:none">
+    <div class="card" style="border:2px solid var(--accent)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span style="font-size:18px">✅</span>
+        <span style="font-size:14px;font-weight:700;color:var(--accent)" id="t-analyze-done">解析完了！</span>
+      </div>
+      <div id="analyzeDataPreview"></div>
+    </div>
+    <button class="btn-primary" onclick="saveAnalyzedData()" id="t-upload-save-btn">✅ 確認して保存</button>
+  </div>
+</div>
+
+<!-- 詳細モーダル -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle"></span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modalContent"></div>
+    <div style="margin-top:14px;display:flex;gap:8px">
+      <button class="btn-danger" style="flex:1" onclick="deleteData()" id="t-delete-btn">削除</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+var i18n = {
+  "app_title": "体組成記録",
+  "app_name": "💪 体組成記録",
+  "tab_input": "入力",
+  "tab_history": "履歴",
+  "tab_graph": "グラフ",
+  "date_label": "測定日",
+  "save_btn": "保存",
+  "reset_btn": "リセット",
+  "delete_btn": "削除",
+  "no_data": "データがありません",
+  "save_success": "保存しました",
+  "delete_confirm": "このデータを削除しますか？",
+  "section_basic": "基本情報",
+  "section_fat": "体脂肪",
+  "section_muscle": "筋肉・代謝",
+  "section_parts": "部位別データ",
+  "weight": "体重",
+  "bmi": "BMI",
+  "fat_pct": "体脂肪率",
+  "fat_mass": "体脂肪量",
+  "obesity_pct": "%肥満度",
+  "visceral_fat": "内臓脂肪率",
+  "muscle_mass": "筋肉量",
+  "bmr": "基礎代謝率",
+  "right_leg": "右脚",
+  "right_leg_fat": "右脚 脂肪量",
+  "right_leg_muscle": "右脚 筋肉量",
+  "left_leg": "左脚",
+  "left_leg_fat": "左脚 脂肪量",
+  "left_leg_muscle": "左脚 筋肉量",
+  "right_arm": "右腕",
+  "right_arm_fat": "右腕 脂肪量",
+  "right_arm_muscle": "右腕 筋肉量",
+  "left_arm": "左腕",
+  "left_arm_fat": "左腕 脂肪量",
+  "left_arm_muscle": "左腕 筋肉量",
+  "trunk": "胴体",
+  "trunk_fat": "胴体 脂肪量",
+  "trunk_muscle": "胴体 筋肉量",
+  "unit_kg": "kg",
+  "unit_pct": "%",
+  "unit_kcal": "kcal",
+  "graph_weight": "体重推移",
+  "graph_fat": "体脂肪率推移",
+  "graph_muscle": "筋肉量推移",
+  "graph_bmr": "基礎代謝推移",
+  "history_title": "測定履歴",
+  "latest_label": "最新",
+  "diff_label": "前回比",
+  "tab_upload": "アップロード",
+  "upload_title": "画像から自動入力",
+  "upload_desc": "体組成計アプリのスクリーンショットを選択してください",
+  "upload_btn": "📷 画像を選択",
+  "analyzing": "解析中...",
+  "analyze_done": "解析完了！内容を確認して保存してください",
+  "analyze_error": "解析に失敗しました。もう一度試してください",
+  "upload_save_btn": "✅ 確認して保存",
+  "upload_clear": "クリア"
+};
+var SHEET_ID = '1se3qFuqhd7e3oMAZ7Yk4AHqkxqtw7ekhVv-PQ33yQW0';
+var API_KEY = 'AIzaSyBPNoazkQCjEofUKj2-uAzL9xzdSVMIqQw';
+var SHEET_NAME = 'records';
+var records = [];
+var currentModalId = null;
+var currentGraphKey = 'weight';
+
+var FIELDS = [
+  { id: 'weight', unit: 'kg' },
+  { id: 'bmi', unit: '' },
+  { id: 'fat-pct', unit: '%' },
+  { id: 'fat-mass', unit: 'kg' },
+  { id: 'obesity-pct', unit: '%' },
+  { id: 'visceral-fat', unit: '' },
+  { id: 'muscle-mass', unit: 'kg' },
+  { id: 'bmr', unit: 'kcal' },
+  { id: 'right-leg-fat', unit: 'kg' },
+  { id: 'right-leg-muscle', unit: 'kg' },
+  { id: 'left-leg-fat', unit: 'kg' },
+  { id: 'left-leg-muscle', unit: 'kg' },
+  { id: 'right-arm-fat', unit: 'kg' },
+  { id: 'right-arm-muscle', unit: 'kg' },
+  { id: 'left-arm-fat', unit: 'kg' },
+  { id: 'left-arm-muscle', unit: 'kg' },
+  { id: 'trunk-fat', unit: 'kg' },
+  { id: 'trunk-muscle', unit: 'kg' },
+];
+
+var GRAPH_KEYS = [
+  { key: 'weight', labelKey: 'graph_weight', color: '#2563EB' },
+  { key: 'fat-pct', labelKey: 'graph_fat', color: '#EF4444' },
+  { key: 'muscle-mass', labelKey: 'graph_muscle', color: '#10B981' },
+  { key: 'bmr', labelKey: 'graph_bmr', color: '#F59E0B' },
+];
+
+function t(key) {
+  return (key in i18n) ? i18n[key] : key;
+}
+
+function loadI18n(callback) {
+  fetch('ja.json?v=' + Date.now())
+    .then(function(r) { return r.json(); })
+    .then(function(data) { i18n = data; callback(); })
+    .catch(function() { callback(); });
+}
+
+function applyI18n() {
+  document.title = t('app_title');
+  var map = {
+    't-app-name': 'app_name',
+    't-tab-input': 'tab_input',
+    't-tab-history': 'tab_history',
+    't-tab-graph': 'tab_graph',
+    't-date-label': 'date_label',
+    't-section-basic': 'section_basic',
+    't-section-fat': 'section_fat',
+    't-section-muscle': 'section_muscle',
+    't-section-parts': 'section_parts',
+    't-weight': 'weight',
+    't-bmi': 'bmi',
+    't-fat-pct': 'fat_pct',
+    't-fat-mass': 'fat_mass',
+    't-obesity-pct': 'obesity_pct',
+    't-visceral-fat': 'visceral_fat',
+    't-muscle-mass': 'muscle_mass',
+    't-bmr': 'bmr',
+    't-right-leg': 'right_leg',
+    't-right-leg-fat': 'right_leg_fat',
+    't-right-leg-muscle': 'right_leg_muscle',
+    't-left-leg': 'left_leg',
+    't-left-leg-fat': 'left_leg_fat',
+    't-left-leg-muscle': 'left_leg_muscle',
+    't-right-arm': 'right_arm',
+    't-right-arm-fat': 'right_arm_fat',
+    't-right-arm-muscle': 'right_arm_muscle',
+    't-left-arm': 'left_arm',
+    't-left-arm-fat': 'left_arm_fat',
+    't-left-arm-muscle': 'left_arm_muscle',
+    't-trunk': 'trunk',
+    't-trunk-fat': 'trunk_fat',
+    't-trunk-muscle': 'trunk_muscle',
+    't-save-btn': 'save_btn',
+    't-delete-btn': 'delete_btn',
+    't-tab-upload': 'tab_upload',
+    't-upload-title': 'upload_title',
+    't-upload-desc': 'upload_desc',
+    't-upload-btn': 'upload_btn',
+    't-analyze-done': 'analyze_done',
+    't-upload-save-btn': 'upload_save_btn',
+  };
+  Object.keys(map).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = t(map[id]);
+  });
+}
+
+function switchTab(name) {
+  ['input','history','graph','upload'].forEach(function(n) {
+    document.getElementById('screen-' + n).classList.toggle('active', n === name);
+    document.getElementById('tab-' + n).classList.toggle('active', n === name);
+  });
+  if (name === 'history') renderHistory();
+  if (name === 'graph') renderGraphTabs();
+}
+
+function getTodayStr() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function loadRecords(callback) {
+  var url = 'https://sheets.googleapis.com/v4/spreadsheets/' + SHEET_ID + '/values/' + SHEET_NAME + '?key=' + API_KEY;
+  fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var rows = data.values || [];
+      if (rows.length <= 1) { records = []; if (callback) callback(); return; }
+      var headers = rows[0];
+      records = rows.slice(1).map(function(row) {
+        var rec = {};
+        headers.forEach(function(h, i) {
+          rec[h] = row[i] !== undefined && row[i] !== '' ? (h === 'id' || h === 'date' ? row[i] : parseFloat(row[i])) : null;
+        });
+        return rec;
+      });
+      records.sort(function(a, b) { return a.date > b.date ? 1 : -1; });
+      if (callback) callback();
+    })
+    .catch(function(e) {
+      console.error('Load error:', e);
+      records = [];
+      if (callback) callback();
+    });
+}
+
+function saveRecords(newRec) {
+  // 追記：新しい行をスプレッドシートに追加
+  var FIELDS_ORDER = ['id','date','weight','bmi','fat-pct','fat-mass','obesity-pct','visceral-fat','muscle-mass','bmr','right-leg-fat','right-leg-muscle','left-leg-fat','left-leg-muscle','right-arm-fat','right-arm-muscle','left-arm-fat','left-arm-muscle','trunk-fat','trunk-muscle'];
+  var row = FIELDS_ORDER.map(function(k) { return newRec[k] != null ? String(newRec[k]) : ''; });
+  var url = 'https://sheets.googleapis.com/v4/spreadsheets/' + SHEET_ID + '/values/' + SHEET_NAME + ':append?valueInputOption=RAW&key=' + API_KEY;
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ values: [row] })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function() { alert(t('save_success')); clearForm(); loadRecords(function() {}); })
+  .catch(function(e) { alert('保存エラー: ' + e.message); });
+}
+
+function saveData() {
+  var date = document.getElementById('inputDate').value;
+  if (!date) { alert('測定日を入力してください'); return; }
+
+  var rec = { id: Date.now(), date: date };
+  FIELDS.forEach(function(f) {
+    var el = document.getElementById('f-' + f.id);
+    rec[f.id] = el ? (el.value !== '' ? parseFloat(el.value) : null) : null;
+  });
+
+  saveRecords(rec);
+}
+
+function clearForm() {
+  FIELDS.forEach(function(f) {
+    var el = document.getElementById('f-' + f.id);
+    if (el) el.value = '';
+  });
+}
+
+function renderHistory() {
+  var list = document.getElementById('historyList');
+  if (records.length === 0) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">📋</div>' + t('no_data') + '</div>';
+    return;
+  }
+  var sorted = records.slice().reverse();
+  var html = '';
+  sorted.forEach(function(rec, i) {
+    var prev = sorted[i + 1] || null;
+    var weightVal = rec['weight'] != null ? rec['weight'] + ' kg' : '-';
+    var fatVal = rec['fat-pct'] != null ? rec['fat-pct'] + ' %' : '-';
+    var muscleVal = rec['muscle-mass'] != null ? rec['muscle-mass'] + ' kg' : '-';
+
+    function diffStr(key) {
+      if (!prev || rec[key] == null || prev[key] == null) return '';
+      var d = (rec[key] - prev[key]).toFixed(1);
+      if (d > 0) return '<span class="history-diff diff-up">▲' + d + '</span>';
+      if (d < 0) return '<span class="history-diff diff-down">▼' + Math.abs(d) + '</span>';
+      return '<span class="history-diff diff-same">－</span>';
+    }
+
+    html += '<div class="history-item" onclick="openModal(\'' + rec.id + '\')">'
+      + '<div class="history-date">'
+      + '<span>' + rec.date.replace(/-/g, '/') + '</span>'
+      + (i === 0 ? '<span class="history-badge">' + t('latest_label') + '</span>' : '')
+      + '</div>'
+      + '<div class="history-grid">'
+      + '<div class="history-stat"><div class="history-stat-label">' + t('weight') + '</div><div class="history-stat-value">' + weightVal + '</div>' + diffStr('weight') + '</div>'
+      + '<div class="history-stat"><div class="history-stat-label">' + t('fat_pct') + '</div><div class="history-stat-value">' + fatVal + '</div>' + diffStr('fat-pct') + '</div>'
+      + '<div class="history-stat"><div class="history-stat-label">' + t('muscle_mass') + '</div><div class="history-stat-value">' + muscleVal + '</div>' + diffStr('muscle-mass') + '</div>'
+      + '</div>'
+      + '</div>';
+  });
+  list.innerHTML = html;
+}
+
+function openModal(id) {
+  currentModalId = id;
+  var rec = records.find(function(r) { return String(r.id) === String(id); });
+  if (!rec) return;
+  document.getElementById('modalTitle').textContent = rec.date.replace(/-/g, '/');
+  var labelMap = {
+    'weight': t('weight') + ' (kg)',
+    'bmi': 'BMI',
+    'fat-pct': t('fat_pct') + ' (%)',
+    'fat-mass': t('fat_mass') + ' (kg)',
+    'obesity-pct': t('obesity_pct') + ' (%)',
+    'visceral-fat': t('visceral_fat'),
+    'muscle-mass': t('muscle_mass') + ' (kg)',
+    'bmr': t('bmr') + ' (kcal)',
+    'right-leg-fat': t('right_leg_fat') + ' (kg)',
+    'right-leg-muscle': t('right_leg_muscle') + ' (kg)',
+    'left-leg-fat': t('left_leg_fat') + ' (kg)',
+    'left-leg-muscle': t('left_leg_muscle') + ' (kg)',
+    'right-arm-fat': t('right_arm_fat') + ' (kg)',
+    'right-arm-muscle': t('right_arm_muscle') + ' (kg)',
+    'left-arm-fat': t('left_arm_fat') + ' (kg)',
+    'left-arm-muscle': t('left_arm_muscle') + ' (kg)',
+    'trunk-fat': t('trunk_fat') + ' (kg)',
+    'trunk-muscle': t('trunk_muscle') + ' (kg)',
+  };
+  var html = '<div class="modal-detail-grid">';
+  FIELDS.forEach(function(f) {
+    var val = rec[f.id];
+    html += '<div class="modal-detail-item">'
+      + '<div class="modal-detail-label">' + (labelMap[f.id] || f.id) + '</div>'
+      + '<div class="modal-detail-value">' + (val != null ? val : '-') + '</div>'
+      + '</div>';
+  });
+  html += '</div>';
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modalOverlay')) return;
+  document.getElementById('modalOverlay').classList.remove('active');
+  currentModalId = null;
+}
+
+function deleteData() {
+  if (!currentModalId) return;
+  if (!confirm(t('delete_confirm'))) return;
+  // ローカルから削除してスプレッドシートを再書き込み
+  records = records.filter(function(r) { return String(r.id) !== String(currentModalId); });
+  rewriteSheet();
+  document.getElementById('modalOverlay').classList.remove('active');
+  currentModalId = null;
+  renderHistory();
+}
+
+function rewriteSheet() {
+  var FIELDS_ORDER = ['id','date','weight','bmi','fat-pct','fat-mass','obesity-pct','visceral-fat','muscle-mass','bmr','right-leg-fat','right-leg-muscle','left-leg-fat','left-leg-muscle','right-arm-fat','right-arm-muscle','left-arm-fat','left-arm-muscle','trunk-fat','trunk-muscle'];
+  var values = [FIELDS_ORDER];
+  records.forEach(function(rec) {
+    values.push(FIELDS_ORDER.map(function(k) { return rec[k] != null ? String(rec[k]) : ''; }));
+  });
+  var url = 'https://sheets.googleapis.com/v4/spreadsheets/' + SHEET_ID + '/values/' + SHEET_NAME + '?valueInputOption=RAW&key=' + API_KEY;
+  fetch(url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ values: values })
+  }).catch(function(e) { console.error('Rewrite error:', e); });
+}
+
+var chartInstance = null;
+
+function renderGraphTabs() {
+  var tabsEl = document.getElementById('graphTabs');
+  tabsEl.innerHTML = '';
+  GRAPH_KEYS.forEach(function(g) {
+    var btn = document.createElement('button');
+    btn.className = 'graph-tab' + (g.key === currentGraphKey ? ' active' : '');
+    btn.textContent = t(g.labelKey);
+    btn.onclick = function() {
+      currentGraphKey = g.key;
+      renderGraphTabs();
+    };
+    tabsEl.appendChild(btn);
+  });
+  renderChart();
+}
+
+function renderChart() {
+  var gk = GRAPH_KEYS.find(function(g) { return g.key === currentGraphKey; });
+  var data = records.filter(function(r) { return r[currentGraphKey] != null; });
+  var labels = data.map(function(r) { return r.date.slice(5).replace('-', '/'); });
+  var values = data.map(function(r) { return r[currentGraphKey]; });
+
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+
+  if (data.length === 0) {
+    var ctx = document.getElementById('myChart').getContext('2d');
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.font = '14px Noto Sans JP';
+    ctx.fillStyle = '#94A3B8';
+    ctx.textAlign = 'center';
+    ctx.fillText(t('no_data'), ctx.canvas.width / 2, 120);
+    return;
+  }
+
+  chartInstance = new Chart(document.getElementById('myChart'), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: t(gk.labelKey),
+        data: values,
+        borderColor: gk.color,
+        backgroundColor: gk.color + '22',
+        borderWidth: 2.5,
+        pointBackgroundColor: gk.color,
+        pointRadius: 4,
+        fill: true,
+        tension: 0.3,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: function(ctx) { return ctx.parsed.y; } } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { grid: { color: '#F1F5F9' }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+window.addEventListener('load', function() {
+  document.getElementById('inputDate').value = getTodayStr();
+  loadI18n(applyI18n);
+  loadRecords(function() {});
+});
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('sw.js').then(function() {
+      console.log('SW registered');
+    });
+  });
+}
+</script>
+</body>
+</html>
