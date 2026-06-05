@@ -305,7 +305,7 @@ canvas { width: 100% !important; }
     <p style="font-size:12px;color:var(--text2);margin-bottom:10px">画像解析にはAnthropicのAPIキーが必要です。キーは端末内にのみ保存されます。</p>
     <div style="display:flex;gap:8px;align-items:center">
       <div class="input-wrap" style="flex:1">
-        <input type="password" id="anthropicApiKey" class="data-input" placeholder="sk-ant-..." style="font-size:13px;font-weight:400;text-align:left;" oninput="saveApiKey()">
+        <input type="password" id="anthropicApiKey" class="api-key-input" placeholder="sk-ant-..." style="font-size:13px;font-weight:400;text-align:left;" oninput="saveApiKey()">
       </div>
       <button onclick="toggleApiKeyVisibility()" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-size:14px;cursor:pointer;">👁</button>
     </div>
