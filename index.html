@@ -145,11 +145,11 @@ canvas { width: 100% !important; }
     <div id="dateTimeInput" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <div style="display:flex;align-items:center;gap:8px;">
         <span class="date-label" id="t-date-label">測定日</span>
-        <input type="date" class="date-input" id="inputDate" style="height:36px;box-sizing:border-box;">
+        <input type="date" class="date-input" id="inputDate" style="height:40px;box-sizing:border-box;line-height:40px;padding:0 8px;">
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         <span class="date-label">時刻</span>
-        <input type="time" class="date-input" id="inputTime" style="width:110px;height:36px;box-sizing:border-box;">
+        <input type="time" class="date-input" id="inputTime" style="width:110px;height:40px;box-sizing:border-box;line-height:40px;padding:0 8px;">
       </div>
     </div>
     <div id="dateTimeLabel" style="display:none;padding:6px 0;">
@@ -1023,7 +1023,7 @@ function analyzeImage(base64Data, mimeType, idx, callback) {
     return;
   }
 
-  var prompt = 'この画像は体組成計アプリ（mywellness）のデータ画面です。画面に表示されているすべての数値を注意深く読み取り、以下のJSON形式のみで返してください。項目が見つからない場合はnullにしてください。\n\n対応表：\n- 体重(kg) → weight\n- BMI → bmi\n- 体脂肪率%(%) → fat-pct\n- 体脂肪量(BFM)(kg) → fat-mass\n- 内臓脂肪率 → visceral-fat\n- 筋肉量(kg) → muscle-mass\n- 基礎代謝率(BMR)(kcal) → bmr\n- %右脚脂肪量(%) → right-leg-fat-pct\n- 右脚脂肪量(kg) → right-leg-fat\n- 右脚筋肉量(kg) → right-leg-muscle\n- %左脚脂肪量(%) → left-leg-fat-pct\n- 左脚脂肪量(kg) → left-leg-fat\n- 左脚筋肉量(kg) → left-leg-muscle\n- %右腕脂肪量(%) → right-arm-fat-pct\n- 右腕脂肪量(kg) → right-arm-fat\n- 右腕筋肉量(kg) → right-arm-muscle\n- %左腕脂肪量(%) または %左腕脂肪量 → left-arm-fat-pct\n- 左腕脂肪量(kg) → left-arm-fat\n- 左腕筋肉量(kg) または 左腕除脂肪量(kg)の隣の値 → left-arm-muscle\n- %体幹脂肪量(%) または %胴体脂肪量(%) → trunk-fat-pct\n- 胴体脂肪量(kg) または 体幹脂肪量(kg) → trunk-fat\n- 胴体筋肉量(kg) または 体幹筋肉量(kg) → trunk-muscle\n\n返却形式（JSONのみ、前後に余計なテキスト不要）:\n{"date":null,"time":null,"weight":null,"bmi":null,"fat-pct":null,"fat-mass":null,"visceral-fat":null,"muscle-mass":null,"bmr":null,"right-leg-fat-pct":null,"right-leg-fat":null,"right-leg-muscle":null,"left-leg-fat-pct":null,"left-leg-fat":null,"left-leg-muscle":null,"right-arm-fat-pct":null,"right-arm-fat":null,"right-arm-muscle":null,"left-arm-fat-pct":null,"left-arm-fat":null,"left-arm-muscle":null,"trunk-fat-pct":null,"trunk-fat":null,"trunk-muscle":null}';
+  var prompt = 'この画像は体組成計アプリ（mywellness）のデータ画面です。画面に表示されているすべての数値を注意深く読み取り、以下のJSON形式のみで返してください。項目が見つからない場合はnullにしてください。\n\n対応表：\n- 体重(kg) → weight\n- BMI → bmi\n- 体脂肪率%(%) → fat-pct\n- 体脂肪量(BFM)(kg) → fat-mass\n- 内臓脂肪率 → visceral-fat\n- 筋肉量(kg) → muscle-mass\n- 基礎代謝率(BMR)(kcal) → bmr\n- %右脚脂肪量(%) → right-leg-fat-pct\n- 右脚脂肪量(kg) → right-leg-fat\n- 右脚筋肉量(kg) → right-leg-muscle\n- %左脚脂肪量(%) → left-leg-fat-pct\n- 左脚脂肪量(kg) → left-leg-fat\n- 左脚筋肉量(kg) → left-leg-muscle\n- %右腕脂肪量(%) → right-arm-fat-pct\n- 右腕脂肪量(kg) → right-arm-fat\n- 右腕筋肉量(kg) → right-arm-muscle\n- %左腕脂肪量(%) または %左腕脂肪量 → left-arm-fat-pct\n- 左腕脂肪量(kg) → left-arm-fat\n- 左腕筋肉量(kg) または 左腕除脂肪量(kg)の隣の値 → left-arm-muscle\n- %体幹脂肪量(%) または %胴体脂肪量(%) または 体幹脂肪率 または 胴体脂肪率 → trunk-fat-pct（必ず取得すること）\n- 胴体脂肪量(kg) または 体幹脂肪量(kg) → trunk-fat（必ず取得すること）\n- 胴体筋肉量(kg) または 体幹筋肉量(kg) → trunk-muscle（必ず取得すること）\n\n返却形式（JSONのみ、前後に余計なテキスト不要）:\n{"date":null,"time":null,"weight":null,"bmi":null,"fat-pct":null,"fat-mass":null,"visceral-fat":null,"muscle-mass":null,"bmr":null,"right-leg-fat-pct":null,"right-leg-fat":null,"right-leg-muscle":null,"left-leg-fat-pct":null,"left-leg-fat":null,"left-leg-muscle":null,"right-arm-fat-pct":null,"right-arm-fat":null,"right-arm-muscle":null,"left-arm-fat-pct":null,"left-arm-fat":null,"left-arm-muscle":null,"trunk-fat-pct":null,"trunk-fat":null,"trunk-muscle":null}';
 
   var body = JSON.stringify({
     model: 'claude-sonnet-4-5',
@@ -1086,10 +1086,10 @@ function mergeRecords(records) {
   FIELDS_ORDER.forEach(function(k) { merged[k] = null; });
 
   records.forEach(function(rec) {
-    if (rec.date) merged.date = rec.date;
-    if (rec.time) merged.time = rec.time;
+    if (!merged.date && rec.date) merged.date = rec.date;
+    if (!merged.time && rec.time) merged.time = rec.time;
     FIELDS_ORDER.forEach(function(k) {
-      if (rec[k] != null) merged[k] = rec[k];
+      if (merged[k] == null && rec[k] != null) merged[k] = rec[k];
     });
   });
   return merged;
