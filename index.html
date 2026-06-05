@@ -898,26 +898,71 @@ function loadApiKey() {
   }
 }
 
+function saveApiKey() {
+  var key = document.getElementById('anthropicApiKey').value.trim();
+  if (key) {
+    localStorage.setItem('anthropic_api_key', key);
+    document.getElementById('apiKeyStatus').textContent = '✅ 設定済み（' + key.substring(0, 10) + '...）';
+    document.getElementById('apiKeyStatus').style.color = 'var(--accent)';
+  } else {
+    localStorage.removeItem('anthropic_api_key');
+    document.getElementById('apiKeyStatus').textContent = '未設定';
+    document.getElementById('apiKeyStatus').style.color = 'var(--text3)';
+  }
+}
+
+function toggleApiKeyVisibility() {
+  var input = document.getElementById('anthropicApiKey');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+function loadApiKey() {
+  var saved = localStorage.getItem('anthropic_api_key');
+  if (saved) {
+    document.getElementById('anthropicApiKey').value = saved;
+    document.getElementById('apiKeyStatus').textContent = '✅ 設定済み（' + saved.substring(0, 10) + '...）';
+    document.getElementById('apiKeyStatus').style.color = 'var(--accent)';
+  }
+}
+
 function analyzeImage(base64Data, mimeType, idx, callback) {
-  var GEMINI_KEY = 'AQ.Ab8RN6KBeqtqbrxeUq8_bIvU8AzKSbM78SuRAwICPLcVoCwqDw';
+  var apiKey = localStorage.getItem('anthropic_api_key') || '';
+  if (!apiKey) {
+    var statusEl = document.getElementById('status-' + idx);
+    if (statusEl) {
+      statusEl.className = 'preview-status status-error';
+      statusEl.textContent = '❌ APIキーが未設定です';
+    }
+    callback(null);
+    return;
+  }
+
   var prompt = 'この画像は体組成計アプリのデータ画面です。以下の項目の数値を読み取ってJSON形式のみで返してください。項目が見つからない場合はnullにしてください。日付と時刻も読み取ってください。\n\n返却形式（JSONのみ、前後に余計なテキスト不要）:\n{"date":"YYYY-MM-DD","time":"HH:MM","weight":null,"bmi":null,"fat-pct":null,"fat-mass":null,"obesity-pct":null,"visceral-fat":null,"muscle-mass":null,"bmr":null,"right-leg-fat":null,"right-leg-muscle":null,"left-leg-fat":null,"left-leg-muscle":null,"right-arm-fat":null,"right-arm-muscle":null,"left-arm-fat":null,"left-arm-muscle":null,"trunk-fat":null,"trunk-muscle":null}';
 
-  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+  var body = JSON.stringify({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1000,
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64Data } },
+        { type: 'text', text: prompt }
+      ]
+    }]
+  });
+
   var controller = new AbortController();
   var timeoutId = setTimeout(function() { controller.abort(); }, 60000);
 
-  fetch(url, {
+  fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-goog-api-key': GEMINI_KEY
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
     },
-    body: JSON.stringify({
-      contents: [{ parts: [
-        { text: prompt },
-        { inline_data: { mime_type: mimeType, data: base64Data } }
-      ]}]
-    }),
+    body: body,
     signal: controller.signal
   })
   .then(function(r) {
@@ -925,8 +970,8 @@ function analyzeImage(base64Data, mimeType, idx, callback) {
     return r.json();
   })
   .then(function(data) {
-    if (data.error) throw new Error(data.error.message);
-    var text = data.candidates[0].content.parts[0].text;
+    if (data.error) throw new Error(data.error.message || 'API error');
+    var text = data.content && data.content[0] ? data.content[0].text : '';
     var json = text.replace(/```json|```/g, '').trim();
     var rec = JSON.parse(json);
     rec.id = Date.now() + idx;
@@ -935,6 +980,18 @@ function analyzeImage(base64Data, mimeType, idx, callback) {
       statusEl.className = 'preview-status status-done';
       statusEl.textContent = '✅ ' + (rec.date || '') + ' ' + (rec.time || '');
     }
+    callback(rec);
+  })
+  .catch(function(e) {
+    clearTimeout(timeoutId);
+    var statusEl = document.getElementById('status-' + idx);
+    if (statusEl) {
+      statusEl.className = 'preview-status status-error';
+      statusEl.textContent = e.name === 'AbortError' ? '❌ タイムアウト' : '❌ ' + e.message;
+    }
+    callback(null);
+  });
+}
     callback(rec);
   })
   .catch(function(e) {
