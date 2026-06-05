@@ -145,11 +145,11 @@ canvas { width: 100% !important; }
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <div style="display:flex;align-items:center;gap:8px;">
         <span class="date-label" id="t-date-label">測定日</span>
-        <input type="date" class="date-input" id="inputDate">
+        <input type="date" class="date-input" id="inputDate" style="height:36px;box-sizing:border-box;">
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         <span class="date-label">時刻</span>
-        <input type="time" class="date-input" id="inputTime" style="width:110px;">
+        <input type="time" class="date-input" id="inputTime" style="width:110px;height:36px;box-sizing:border-box;">
       </div>
     </div>
     <div id="editingLabel" style="display:none;margin-top:8px;font-size:12px;color:var(--primary);font-weight:700;">✏️ 編集中：<span id="editingDateText"></span></div>
@@ -557,6 +557,11 @@ function getTodayStr() {
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
+function getNowTimeStr() {
+  var d = new Date();
+  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+
 function loadRecords(callback) {
   fetch(GAS_URL + '?action=load')
     .then(function(r) { return r.json(); })
@@ -599,12 +604,12 @@ function loadRecords(callback) {
 }
 
 function saveRecords(newRec) {
-  var FIELDS_ORDER = ['id','date','weight','bmi','fat-pct','fat-mass','visceral-fat','muscle-mass','bmr','right-leg-fat-pct','right-leg-fat','right-leg-muscle','left-leg-fat-pct','left-leg-fat','left-leg-muscle','right-arm-fat-pct','right-arm-fat','right-arm-muscle','left-arm-fat-pct','left-arm-fat','left-arm-muscle','trunk-fat-pct','trunk-fat','trunk-muscle'];
+  var FIELDS_ORDER = ['id','date','time','weight','bmi','fat-pct','fat-mass','visceral-fat','muscle-mass','bmr','right-leg-fat-pct','right-leg-fat','right-leg-muscle','left-leg-fat-pct','left-leg-fat','left-leg-muscle','right-arm-fat-pct','right-arm-fat','right-arm-muscle','left-arm-fat-pct','left-arm-fat','left-arm-muscle','trunk-fat-pct','trunk-fat','trunk-muscle'];
   var row = FIELDS_ORDER.map(function(k) { return newRec[k] != null ? String(newRec[k]) : ''; });
   fetch(GAS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ action: 'save', row: row })
+    body: JSON.stringify({ action: 'save', row: row, headers: FIELDS_ORDER })
   })
   .then(function(r) { return r.json(); })
   .then(function() { alert(t('save_success')); clearForm(); loadRecords(function() {}); })
@@ -665,7 +670,7 @@ function clearForm() {
   document.getElementById('editingLabel').style.display = 'none';
   document.getElementById('editingDateText').textContent = '';
   document.getElementById('cancelEditArea').style.display = 'none';
-  document.getElementById('inputTime').value = '';
+  document.getElementById('inputTime').value = getNowTimeStr();
   FIELDS.forEach(function(f) {
     var el = document.getElementById('f-' + f.id);
     if (el) el.value = '';
@@ -722,14 +727,19 @@ function openModal(id) {
     'visceral-fat': t('visceral_fat'),
     'muscle-mass': t('muscle_mass') + ' (kg)',
     'bmr': t('bmr') + ' (kcal)',
+    'right-leg-fat-pct': '右脚 脂肪量% (%)',
     'right-leg-fat': t('right_leg_fat') + ' (kg)',
     'right-leg-muscle': t('right_leg_muscle') + ' (kg)',
+    'left-leg-fat-pct': '左脚 脂肪量% (%)',
     'left-leg-fat': t('left_leg_fat') + ' (kg)',
     'left-leg-muscle': t('left_leg_muscle') + ' (kg)',
+    'right-arm-fat-pct': '右腕 脂肪量% (%)',
     'right-arm-fat': t('right_arm_fat') + ' (kg)',
     'right-arm-muscle': t('right_arm_muscle') + ' (kg)',
+    'left-arm-fat-pct': '左腕 脂肪量% (%)',
     'left-arm-fat': t('left_arm_fat') + ' (kg)',
     'left-arm-muscle': t('left_arm_muscle') + ' (kg)',
+    'trunk-fat-pct': '胴体 脂肪量% (%)',
     'trunk-fat': t('trunk_fat') + ' (kg)',
     'trunk-muscle': t('trunk_muscle') + ' (kg)',
   };
@@ -890,6 +900,7 @@ function renderChart() {
 
 window.addEventListener('load', function() {
   document.getElementById('inputDate').value = getTodayStr();
+  document.getElementById('inputTime').value = getNowTimeStr();
   loadI18n(applyI18n);
   loadRecords(function() {});
   loadApiKey();
