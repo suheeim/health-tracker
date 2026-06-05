@@ -588,12 +588,12 @@ function loadRecords(callback) {
         var rec = {};
         headers.forEach(function(h, i) {
           if (row[i] !== undefined && row[i] !== '') {
-            if (h === 'id') {
+            if (h === 'id' || h === 'time') {
               rec[h] = row[i];
             } else if (h === 'date') {
               // ISO形式をJSTのYYYY-MM-DDに変換
               var dv = row[i];
-              if (dv.indexOf('T') !== -1) {
+              if (typeof dv === 'string' && dv.indexOf('T') !== -1) {
                 var dd = new Date(dv);
                 dd.setTime(dd.getTime() + 9 * 60 * 60 * 1000);
                 dv = dd.getFullYear() + '-' + String(dd.getMonth()+1).padStart(2,'0') + '-' + String(dd.getDate()).padStart(2,'0');
