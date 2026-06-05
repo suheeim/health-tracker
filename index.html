@@ -898,33 +898,6 @@ function loadApiKey() {
   }
 }
 
-function saveApiKey() {
-  var key = document.getElementById('anthropicApiKey').value.trim();
-  if (key) {
-    localStorage.setItem('anthropic_api_key', key);
-    document.getElementById('apiKeyStatus').textContent = '✅ 設定済み（' + key.substring(0, 10) + '...）';
-    document.getElementById('apiKeyStatus').style.color = 'var(--accent)';
-  } else {
-    localStorage.removeItem('anthropic_api_key');
-    document.getElementById('apiKeyStatus').textContent = '未設定';
-    document.getElementById('apiKeyStatus').style.color = 'var(--text3)';
-  }
-}
-
-function toggleApiKeyVisibility() {
-  var input = document.getElementById('anthropicApiKey');
-  input.type = input.type === 'password' ? 'text' : 'password';
-}
-
-function loadApiKey() {
-  var saved = localStorage.getItem('anthropic_api_key');
-  if (saved) {
-    document.getElementById('anthropicApiKey').value = saved;
-    document.getElementById('apiKeyStatus').textContent = '✅ 設定済み（' + saved.substring(0, 10) + '...）';
-    document.getElementById('apiKeyStatus').style.color = 'var(--accent)';
-  }
-}
-
 function analyzeImage(base64Data, mimeType, idx, callback) {
   var apiKey = localStorage.getItem('anthropic_api_key') || '';
   if (!apiKey) {
