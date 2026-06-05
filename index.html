@@ -913,7 +913,7 @@ function analyzeImage(base64Data, mimeType, idx, callback) {
   var prompt = 'この画像は体組成計アプリのデータ画面です。以下の項目の数値を読み取ってJSON形式のみで返してください。項目が見つからない場合はnullにしてください。日付と時刻も読み取ってください。\n\n返却形式（JSONのみ、前後に余計なテキスト不要）:\n{"date":"YYYY-MM-DD","time":"HH:MM","weight":null,"bmi":null,"fat-pct":null,"fat-mass":null,"obesity-pct":null,"visceral-fat":null,"muscle-mass":null,"bmr":null,"right-leg-fat":null,"right-leg-muscle":null,"left-leg-fat":null,"left-leg-muscle":null,"right-arm-fat":null,"right-arm-muscle":null,"left-arm-fat":null,"left-arm-muscle":null,"trunk-fat":null,"trunk-muscle":null}';
 
   var body = JSON.stringify({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-5',
     max_tokens: 1000,
     messages: [{
       role: 'user',
