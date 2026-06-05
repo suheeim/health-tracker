@@ -142,7 +142,7 @@ canvas { width: 100% !important; }
 <div id="screen-input" class="screen active">
   <!-- 日付 -->
   <div class="card">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <div id="dateTimeInput" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <div style="display:flex;align-items:center;gap:8px;">
         <span class="date-label" id="t-date-label">測定日</span>
         <input type="date" class="date-input" id="inputDate" style="height:36px;box-sizing:border-box;">
@@ -152,7 +152,12 @@ canvas { width: 100% !important; }
         <input type="time" class="date-input" id="inputTime" style="width:110px;height:36px;box-sizing:border-box;">
       </div>
     </div>
-    <div id="editingLabel" style="display:none;margin-top:8px;font-size:12px;color:var(--primary);font-weight:700;">✏️ 編集中：<span id="editingDateText"></span></div>
+    <div id="dateTimeLabel" style="display:none;padding:6px 0;">
+      <span class="date-label">測定日</span>
+      <span id="editingDateText" style="font-size:15px;font-weight:700;color:var(--primary);margin-left:8px;"></span>
+      <span class="date-label" style="margin-left:16px;">時刻</span>
+      <span id="editingTimeText" style="font-size:15px;font-weight:700;color:var(--primary);margin-left:8px;"></span>
+    </div>
   </div>
 
   <!-- 基本情報 -->
@@ -633,10 +638,15 @@ function initInputValidation() {
 }
 
 function saveData() {
-  var date = document.getElementById('inputDate').value;
+  // 編集モード時はテキストラベルから日付を取得
+  var date = editingId
+    ? document.getElementById('editingDateText').textContent
+    : document.getElementById('inputDate').value;
   if (!date) { alert('測定日を入力してください'); return; }
 
-  var time = document.getElementById('inputTime').value;
+  var time = editingId
+    ? document.getElementById('editingTimeText').textContent
+    : document.getElementById('inputTime').value;
   var rec = { id: editingId ? editingId : Date.now(), date: date, time: time };
   FIELDS.forEach(function(f) {
     var el = document.getElementById('f-' + f.id);
@@ -667,8 +677,10 @@ function clearForm() {
   dateEl.style.background = '';
   dateEl.style.color = '';
   editingId = null;
-  document.getElementById('editingLabel').style.display = 'none';
+  document.getElementById('dateTimeInput').style.display = 'flex';
+  document.getElementById('dateTimeLabel').style.display = 'none';
   document.getElementById('editingDateText').textContent = '';
+  document.getElementById('editingTimeText').textContent = '';
   document.getElementById('cancelEditArea').style.display = 'none';
   document.getElementById('inputTime').value = getNowTimeStr();
   FIELDS.forEach(function(f) {
@@ -801,12 +813,14 @@ function editData() {
   dateEl.style.background = 'var(--surface2)';
   dateEl.style.color = 'var(--text3)';
 
-  // 編集中ラベルを表示
-  document.getElementById('editingLabel').style.display = 'block';
+  // 日付・時刻をテキストラベルで表示
+  document.getElementById('dateTimeInput').style.display = 'none';
+  document.getElementById('dateTimeLabel').style.display = 'block';
   document.getElementById('editingDateText').textContent = dateStr;
+  document.getElementById('editingTimeText').textContent = rec.time || '';
   document.getElementById('cancelEditArea').style.display = 'block';
 
-  // 時刻をセット
+  // 時刻をセット（内部値として保持）
   if (rec.time) document.getElementById('inputTime').value = rec.time;
 
   FIELDS.forEach(function(f) {
@@ -991,7 +1005,7 @@ function analyzeImage(base64Data, mimeType, idx, callback) {
     return;
   }
 
-  var prompt = 'この画像は体組成計アプリ（mywellness）のデータ画面です。画面に表示されているすべての数値を注意深く読み取り、以下のJSON形式のみで返してください。項目が見つからない場合はnullにしてください。\n\n対応表：\n- 体重(kg) → weight\n- BMI → bmi\n- 体脂肪率%(%) → fat-pct\n- 体脂肪量(BFM)(kg) → fat-mass\n- 内臓脂肪率 → visceral-fat\n- 筋肉量(kg) → muscle-mass\n- 基礎代謝率(BMR)(kcal) → bmr\n- %右脚脂肪量(%) → right-leg-fat-pct\n- 右脚脂肪量(kg) → right-leg-fat\n- 右脚筋肉量(kg) → right-leg-muscle\n- %左脚脂肪量(%) → left-leg-fat-pct\n- 左脚脂肪量(kg) → left-leg-fat\n- 左脚筋肉量(kg) → left-leg-muscle\n- %右腕脂肪量(%) → right-arm-fat-pct\n- 右腕脂肪量(kg) → right-arm-fat\n- 右腕筋肉量(kg) → right-arm-muscle\n- %左腕脂肪量(%) → left-arm-fat-pct\n- 左腕脂肪量(kg) → left-arm-fat\n- 左腕筋肉量(kg) → left-arm-muscle\n- %体幹脂肪量(%) または %胴体脂肪量(%) → trunk-fat-pct\n- 胴体脂肪量(kg) または 体幹脂肪量(kg) → trunk-fat\n- 胴体筋肉量(kg) または 体幹筋肉量(kg) → trunk-muscle\n\n返却形式（JSONのみ、前後に余計なテキスト不要）:\n{"date":"YYYY-MM-DD","time":"HH:MM","weight":null,"bmi":null,"fat-pct":null,"fat-mass":null,"visceral-fat":null,"muscle-mass":null,"bmr":null,"right-leg-fat-pct":null,"right-leg-fat":null,"right-leg-muscle":null,"left-leg-fat-pct":null,"left-leg-fat":null,"left-leg-muscle":null,"right-arm-fat-pct":null,"right-arm-fat":null,"right-arm-muscle":null,"left-arm-fat-pct":null,"left-arm-fat":null,"left-arm-muscle":null,"trunk-fat-pct":null,"trunk-fat":null,"trunk-muscle":null}';
+  var prompt = 'この画像は体組成計アプリ（mywellness）のデータ画面です。画面に表示されているすべての数値を注意深く読み取り、以下のJSON形式のみで返してください。項目が見つからない場合はnullにしてください。\n\n対応表：\n- 体重(kg) → weight\n- BMI → bmi\n- 体脂肪率%(%) → fat-pct\n- 体脂肪量(BFM)(kg) → fat-mass\n- 内臓脂肪率 → visceral-fat\n- 筋肉量(kg) → muscle-mass\n- 基礎代謝率(BMR)(kcal) → bmr\n- %右脚脂肪量(%) → right-leg-fat-pct\n- 右脚脂肪量(kg) → right-leg-fat\n- 右脚筋肉量(kg) → right-leg-muscle\n- %左脚脂肪量(%) → left-leg-fat-pct\n- 左脚脂肪量(kg) → left-leg-fat\n- 左脚筋肉量(kg) → left-leg-muscle\n- %右腕脂肪量(%) → right-arm-fat-pct\n- 右腕脂肪量(kg) → right-arm-fat\n- 右腕筋肉量(kg) → right-arm-muscle\n- %左腕脂肪量(%) または %左腕脂肪量 → left-arm-fat-pct\n- 左腕脂肪量(kg) → left-arm-fat\n- 左腕筋肉量(kg) または 左腕除脂肪量(kg)の隣の値 → left-arm-muscle\n- %体幹脂肪量(%) または %胴体脂肪量(%) → trunk-fat-pct\n- 胴体脂肪量(kg) または 体幹脂肪量(kg) → trunk-fat\n- 胴体筋肉量(kg) または 体幹筋肉量(kg) → trunk-muscle\n\n返却形式（JSONのみ、前後に余計なテキスト不要）:\n{"date":"YYYY-MM-DD","time":"HH:MM","weight":null,"bmi":null,"fat-pct":null,"fat-mass":null,"visceral-fat":null,"muscle-mass":null,"bmr":null,"right-leg-fat-pct":null,"right-leg-fat":null,"right-leg-muscle":null,"left-leg-fat-pct":null,"left-leg-fat":null,"left-leg-muscle":null,"right-arm-fat-pct":null,"right-arm-fat":null,"right-arm-muscle":null,"left-arm-fat-pct":null,"left-arm-fat":null,"left-arm-muscle":null,"trunk-fat-pct":null,"trunk-fat":null,"trunk-muscle":null}';
 
   var body = JSON.stringify({
     model: 'claude-sonnet-4-5',
