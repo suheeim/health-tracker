@@ -146,6 +146,7 @@ canvas { width: 100% !important; }
       <span class="date-label" id="t-date-label">測定日</span>
       <input type="date" class="date-input" id="inputDate">
     </div>
+    <div id="editingLabel" style="display:none;margin-top:8px;font-size:12px;color:var(--primary);font-weight:700;">✏️ 編集中：<span id="editingDateText"></span></div>
   </div>
 
   <!-- 基本情報 -->
@@ -305,7 +306,7 @@ canvas { width: 100% !important; }
     <p style="font-size:12px;color:var(--text2);margin-bottom:10px">画像解析にはAnthropicのAPIキーが必要です。キーは端末内にのみ保存されます。</p>
     <div style="display:flex;gap:8px;align-items:center">
       <div class="input-wrap" style="flex:1">
-        <input type="password" id="anthropicApiKey" class="api-key-input" placeholder="sk-ant-..." style="font-size:13px;font-weight:400;text-align:left;" oninput="saveApiKey()">
+        <input type="password" id="anthropicApiKey" class="api-key-input" placeholder="sk-ant-..." style="font-size:13px;font-weight:400;text-align:left;width:100%;box-sizing:border-box;" oninput="saveApiKey()">
       </div>
       <button onclick="toggleApiKeyVisibility()" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-size:14px;cursor:pointer;">👁</button>
     </div>
@@ -539,7 +540,24 @@ function loadRecords(callback) {
       records = rows.slice(1).map(function(row) {
         var rec = {};
         headers.forEach(function(h, i) {
-          rec[h] = row[i] !== undefined && row[i] !== '' ? (h === 'id' || h === 'date' ? row[i] : parseFloat(row[i])) : null;
+          if (row[i] !== undefined && row[i] !== '') {
+            if (h === 'id') {
+              rec[h] = row[i];
+            } else if (h === 'date') {
+              // ISO形式をJSTのYYYY-MM-DDに変換
+              var dv = row[i];
+              if (dv.indexOf('T') !== -1) {
+                var dd = new Date(dv);
+                dd.setTime(dd.getTime() + 9 * 60 * 60 * 1000);
+                dv = dd.getFullYear() + '-' + String(dd.getMonth()+1).padStart(2,'0') + '-' + String(dd.getDate()).padStart(2,'0');
+              }
+              rec[h] = dv;
+            } else {
+              rec[h] = parseFloat(row[i]);
+            }
+          } else {
+            rec[h] = null;
+          }
         });
         return rec;
       });
@@ -616,6 +634,8 @@ function clearForm() {
   dateEl.style.background = '';
   dateEl.style.color = '';
   editingId = null;
+  document.getElementById('editingLabel').style.display = 'none';
+  document.getElementById('editingDateText').textContent = '';
   FIELDS.forEach(function(f) {
     var el = document.getElementById('f-' + f.id);
     if (el) el.value = '';
@@ -727,12 +747,24 @@ function editData() {
   var rec = records.find(function(r) { return String(r.id) === String(currentModalId); });
   if (!rec) return;
 
+  // 日付をYYYY-MM-DD形式に変換
+  var dateStr = rec.date || '';
+  if (dateStr.indexOf('T') !== -1) {
+    var d = new Date(dateStr);
+    d.setTime(d.getTime() + 9 * 60 * 60 * 1000);
+    dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+
   // 入力タブに値をセット
   var dateEl = document.getElementById('inputDate');
-  dateEl.value = rec.date || '';
+  dateEl.value = dateStr;
   dateEl.readOnly = true;
   dateEl.style.background = 'var(--surface2)';
   dateEl.style.color = 'var(--text3)';
+
+  // 編集中ラベルを表示
+  document.getElementById('editingLabel').style.display = 'block';
+  document.getElementById('editingDateText').textContent = dateStr;
 
   FIELDS.forEach(function(f) {
     var el = document.getElementById('f-' + f.id);
