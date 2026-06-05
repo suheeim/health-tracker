@@ -316,6 +316,10 @@ canvas { width: 100% !important; }
 
 <!-- 履歴画面 -->
 <div id="screen-history" class="screen">
+  <div id="historyLoading" style="text-align:center;padding:40px;color:var(--text3);font-size:14px;">
+    <div style="font-size:32px;margin-bottom:10px;">⏳</div>
+    データを読み込み中...
+  </div>
   <div id="historyList"></div>
 </div>
 
@@ -553,7 +557,13 @@ function switchTab(name) {
     document.getElementById('screen-' + n).classList.toggle('active', n === name);
     document.getElementById('tab-' + n).classList.toggle('active', n === name);
   });
-  if (name === 'history') renderHistory();
+  if (name === 'history') {
+    if (records.length === 0) {
+      loadRecords(function() { renderHistory(); });
+    } else {
+      renderHistory();
+    }
+  }
   if (name === 'graph') renderGraphTabs();
 }
 
@@ -622,6 +632,7 @@ function saveRecords(newRec) {
 }
 
 var editingId = null;
+var pendingAnalyzedRecord = null;
 
 function initInputValidation() {
   document.querySelectorAll(".data-input").forEach(function(el) {
@@ -647,11 +658,13 @@ function saveData() {
   var time = editingId
     ? document.getElementById('editingTimeText').textContent
     : document.getElementById('inputTime').value;
-  var rec = { id: editingId ? editingId : Date.now(), date: date, time: time };
+  var recId = editingId ? editingId : (pendingAnalyzedRecord ? pendingAnalyzedRecord.id : Date.now());
+  var rec = { id: recId, date: date, time: time };
   FIELDS.forEach(function(f) {
     var el = document.getElementById('f-' + f.id);
     rec[f.id] = el ? (el.value !== '' ? parseFloat(el.value) : null) : null;
   });
+  pendingAnalyzedRecord = null;
 
   if (editingId) {
     // 編集モード：古いレコードを削除して新しいレコードを保存
@@ -690,6 +703,8 @@ function clearForm() {
 }
 
 function renderHistory() {
+  var loading = document.getElementById('historyLoading');
+  if (loading) loading.style.display = 'none';
   var list = document.getElementById('historyList');
   if (records.length === 0) {
     list.innerHTML = '<div class="empty"><div class="empty-icon">📋</div>' + t('no_data') + '</div>';
@@ -916,7 +931,10 @@ window.addEventListener('load', function() {
   document.getElementById('inputDate').value = getTodayStr();
   document.getElementById('inputTime').value = getNowTimeStr();
   loadI18n(applyI18n);
-  loadRecords(function() {});
+  loadRecords(function() {
+    renderHistory();
+    renderGraphTabs();
+  });
   loadApiKey();
   initInputValidation();
 });
@@ -1005,7 +1023,7 @@ function analyzeImage(base64Data, mimeType, idx, callback) {
     return;
   }
 
-  var prompt = 'この画像は体組成計アプリ（mywellness）のデータ画面です。画面に表示されているすべての数値を注意深く読み取り、以下のJSON形式のみで返してください。項目が見つからない場合はnullにしてください。\n\n対応表：\n- 体重(kg) → weight\n- BMI → bmi\n- 体脂肪率%(%) → fat-pct\n- 体脂肪量(BFM)(kg) → fat-mass\n- 内臓脂肪率 → visceral-fat\n- 筋肉量(kg) → muscle-mass\n- 基礎代謝率(BMR)(kcal) → bmr\n- %右脚脂肪量(%) → right-leg-fat-pct\n- 右脚脂肪量(kg) → right-leg-fat\n- 右脚筋肉量(kg) → right-leg-muscle\n- %左脚脂肪量(%) → left-leg-fat-pct\n- 左脚脂肪量(kg) → left-leg-fat\n- 左脚筋肉量(kg) → left-leg-muscle\n- %右腕脂肪量(%) → right-arm-fat-pct\n- 右腕脂肪量(kg) → right-arm-fat\n- 右腕筋肉量(kg) → right-arm-muscle\n- %左腕脂肪量(%) または %左腕脂肪量 → left-arm-fat-pct\n- 左腕脂肪量(kg) → left-arm-fat\n- 左腕筋肉量(kg) または 左腕除脂肪量(kg)の隣の値 → left-arm-muscle\n- %体幹脂肪量(%) または %胴体脂肪量(%) → trunk-fat-pct\n- 胴体脂肪量(kg) または 体幹脂肪量(kg) → trunk-fat\n- 胴体筋肉量(kg) または 体幹筋肉量(kg) → trunk-muscle\n\n返却形式（JSONのみ、前後に余計なテキスト不要）:\n{"date":"YYYY-MM-DD","time":"HH:MM","weight":null,"bmi":null,"fat-pct":null,"fat-mass":null,"visceral-fat":null,"muscle-mass":null,"bmr":null,"right-leg-fat-pct":null,"right-leg-fat":null,"right-leg-muscle":null,"left-leg-fat-pct":null,"left-leg-fat":null,"left-leg-muscle":null,"right-arm-fat-pct":null,"right-arm-fat":null,"right-arm-muscle":null,"left-arm-fat-pct":null,"left-arm-fat":null,"left-arm-muscle":null,"trunk-fat-pct":null,"trunk-fat":null,"trunk-muscle":null}';
+  var prompt = 'この画像は体組成計アプリ（mywellness）のデータ画面です。画面に表示されているすべての数値を注意深く読み取り、以下のJSON形式のみで返してください。項目が見つからない場合はnullにしてください。\n\n対応表：\n- 体重(kg) → weight\n- BMI → bmi\n- 体脂肪率%(%) → fat-pct\n- 体脂肪量(BFM)(kg) → fat-mass\n- 内臓脂肪率 → visceral-fat\n- 筋肉量(kg) → muscle-mass\n- 基礎代謝率(BMR)(kcal) → bmr\n- %右脚脂肪量(%) → right-leg-fat-pct\n- 右脚脂肪量(kg) → right-leg-fat\n- 右脚筋肉量(kg) → right-leg-muscle\n- %左脚脂肪量(%) → left-leg-fat-pct\n- 左脚脂肪量(kg) → left-leg-fat\n- 左脚筋肉量(kg) → left-leg-muscle\n- %右腕脂肪量(%) → right-arm-fat-pct\n- 右腕脂肪量(kg) → right-arm-fat\n- 右腕筋肉量(kg) → right-arm-muscle\n- %左腕脂肪量(%) または %左腕脂肪量 → left-arm-fat-pct\n- 左腕脂肪量(kg) → left-arm-fat\n- 左腕筋肉量(kg) または 左腕除脂肪量(kg)の隣の値 → left-arm-muscle\n- %体幹脂肪量(%) または %胴体脂肪量(%) → trunk-fat-pct\n- 胴体脂肪量(kg) または 体幹脂肪量(kg) → trunk-fat\n- 胴体筋肉量(kg) または 体幹筋肉量(kg) → trunk-muscle\n\n返却形式（JSONのみ、前後に余計なテキスト不要）:\n{"date":null,"time":null,"weight":null,"bmi":null,"fat-pct":null,"fat-mass":null,"visceral-fat":null,"muscle-mass":null,"bmr":null,"right-leg-fat-pct":null,"right-leg-fat":null,"right-leg-muscle":null,"left-leg-fat-pct":null,"left-leg-fat":null,"left-leg-muscle":null,"right-arm-fat-pct":null,"right-arm-fat":null,"right-arm-muscle":null,"left-arm-fat-pct":null,"left-arm-fat":null,"left-arm-muscle":null,"trunk-fat-pct":null,"trunk-fat":null,"trunk-muscle":null}';
 
   var body = JSON.stringify({
     model: 'claude-sonnet-4-5',
@@ -1115,9 +1133,32 @@ function saveAnalyzedData() {
   var valid = analyzedRecords.filter(function(r) { return r !== null; });
   if (valid.length === 0) return;
 
-  // 複数画像は1レコードにマージして保存
+  // 複数画像は1レコードにマージ
   var merged = mergeRecords(valid);
-  if (merged.date) saveRecords(merged);
+
+  // 日付・時刻が取れなかった場合は入力タブで入力してもらう
+  if (!merged.date || merged.date === 'YYYY-MM-DD') {
+    // 解析データを一時保存して入力タブへ
+    pendingAnalyzedRecord = merged;
+    switchTab('input');
+    document.getElementById('dateTimeInput').style.display = 'flex';
+    document.getElementById('dateTimeLabel').style.display = 'none';
+    document.getElementById('inputDate').value = getTodayStr();
+    document.getElementById('inputTime').value = getNowTimeStr();
+    // 数値データを入力欄にセット
+    FIELDS.forEach(function(f) {
+      var el = document.getElementById('f-' + f.id);
+      if (el) el.value = merged[f.id] != null ? merged[f.id] : '';
+    });
+    alert('日付・時刻を確認して「保存」ボタンを押してください。');
+    document.getElementById('imagePreviewList').innerHTML = '';
+    document.getElementById('analyzeResult').style.display = 'none';
+    document.getElementById('imageUpload').value = '';
+    analyzedRecords = [];
+    return;
+  }
+
+  saveRecords(merged);
 
   document.getElementById('imagePreviewList').innerHTML = '';
   document.getElementById('analyzeResult').style.display = 'none';
