@@ -965,18 +965,6 @@ function analyzeImage(base64Data, mimeType, idx, callback) {
     callback(null);
   });
 }
-    callback(rec);
-  })
-  .catch(function(e) {
-    clearTimeout(timeoutId);
-    var statusEl = document.getElementById('status-' + idx);
-    if (statusEl) {
-      statusEl.className = 'preview-status status-error';
-      statusEl.textContent = e.name === 'AbortError' ? '❌ タイムアウト' : '❌ ' + e.message;
-    }
-    callback(null);
-  });
-}
 
 function showAnalyzeResults() {
   var valid = analyzedRecords.filter(function(r) { return r !== null; });
