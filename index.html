@@ -966,9 +966,28 @@ function analyzeImage(base64Data, mimeType, idx, callback) {
   });
 }
 
+function mergeRecords(records) {
+  // 複数レコードを1つにマージ（nullでない値を優先）
+  var merged = { id: Date.now(), date: null, time: null };
+  var FIELDS_ORDER = ['weight','bmi','fat-pct','fat-mass','obesity-pct','visceral-fat','muscle-mass','bmr','right-leg-fat','right-leg-muscle','left-leg-fat','left-leg-muscle','right-arm-fat','right-arm-muscle','left-arm-fat','left-arm-muscle','trunk-fat','trunk-muscle'];
+  FIELDS_ORDER.forEach(function(k) { merged[k] = null; });
+
+  records.forEach(function(rec) {
+    if (rec.date) merged.date = rec.date;
+    if (rec.time) merged.time = rec.time;
+    FIELDS_ORDER.forEach(function(k) {
+      if (rec[k] != null) merged[k] = rec[k];
+    });
+  });
+  return merged;
+}
+
 function showAnalyzeResults() {
   var valid = analyzedRecords.filter(function(r) { return r !== null; });
   if (valid.length === 0) return;
+
+  // 複数画像は1レコードにマージ
+  var merged = mergeRecords(valid);
 
   var labelMap = {
     'weight': t('weight') + ' (kg)', 'bmi': 'BMI',
@@ -983,19 +1002,15 @@ function showAnalyzeResults() {
   };
 
   var FIELDS_ORDER = ['weight','bmi','fat-pct','fat-mass','obesity-pct','visceral-fat','muscle-mass','bmr','right-leg-fat','right-leg-muscle','left-leg-fat','left-leg-muscle','right-arm-fat','right-arm-muscle','left-arm-fat','left-arm-muscle','trunk-fat','trunk-muscle'];
-  var html = '';
-  valid.forEach(function(rec) {
-    html += '<div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">';
-    html += '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px">📅 ' + (rec.date || '-') + ' ' + (rec.time || '') + '</div>';
-    html += '<div class="modal-detail-grid">';
-    FIELDS_ORDER.forEach(function(k) {
-      html += '<div class="modal-detail-item">'
-        + '<div class="modal-detail-label">' + (labelMap[k] || k) + '</div>'
-        + '<div class="modal-detail-value">' + (rec[k] != null ? rec[k] : '-') + '</div>'
-        + '</div>';
-    });
-    html += '</div></div>';
+  var html = '<div style="margin-bottom:10px;font-size:14px;font-weight:700;color:var(--text)">📅 ' + (merged.date || '-') + ' ' + (merged.time || '') + '</div>';
+  html += '<div class="modal-detail-grid">';
+  FIELDS_ORDER.forEach(function(k) {
+    html += '<div class="modal-detail-item">'
+      + '<div class="modal-detail-label">' + (labelMap[k] || k) + '</div>'
+      + '<div class="modal-detail-value">' + (merged[k] != null ? merged[k] : '-') + '</div>'
+      + '</div>';
   });
+  html += '</div>';
 
   document.getElementById('analyzeDataPreview').innerHTML = html;
   document.getElementById('analyzeResult').style.display = 'block';
@@ -1004,10 +1019,11 @@ function showAnalyzeResults() {
 function saveAnalyzedData() {
   var valid = analyzedRecords.filter(function(r) { return r !== null; });
   if (valid.length === 0) return;
-  valid.forEach(function(rec) {
-    if (!rec.date) return;
-    saveRecords(rec);
-  });
+
+  // 複数画像は1レコードにマージして保存
+  var merged = mergeRecords(valid);
+  if (merged.date) saveRecords(merged);
+
   document.getElementById('imagePreviewList').innerHTML = '';
   document.getElementById('analyzeResult').style.display = 'none';
   document.getElementById('imageUpload').value = '';
