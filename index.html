@@ -142,9 +142,15 @@ canvas { width: 100% !important; }
 <div id="screen-input" class="screen active">
   <!-- 日付 -->
   <div class="card">
-    <div style="display:flex;align-items:center;gap:10px">
-      <span class="date-label" id="t-date-label">測定日</span>
-      <input type="date" class="date-input" id="inputDate">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="date-label" id="t-date-label">測定日</span>
+        <input type="date" class="date-input" id="inputDate">
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="date-label">時刻</span>
+        <input type="time" class="date-input" id="inputTime" style="width:110px;">
+      </div>
     </div>
     <div id="editingLabel" style="display:none;margin-top:8px;font-size:12px;color:var(--primary);font-weight:700;">✏️ 編集中：<span id="editingDateText"></span></div>
   </div>
@@ -179,10 +185,6 @@ canvas { width: 100% !important; }
     </div>
     <div class="input-row">
       <div class="input-group">
-        <span class="input-label" id="t-obesity-pct">%肥満度</span>
-        <div class="input-wrap"><input class="data-input" id="f-obesity-pct" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">%</span></div>
-      </div>
-      <div class="input-group">
         <span class="input-label" id="t-visceral-fat">内臓脂肪率</span>
         <div class="input-wrap"><input class="data-input" id="f-visceral-fat" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit"></span></div>
       </div>
@@ -213,6 +215,10 @@ canvas { width: 100% !important; }
         <div class="part-title" id="t-right-leg">右脚</div>
         <div class="part-row">
           <div class="input-group">
+            <span class="input-label">脂肪量%</span>
+            <div class="input-wrap"><input class="data-input" id="f-right-leg-fat-pct" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">%</span></div>
+          </div>
+          <div class="input-group">
             <span class="input-label" id="t-right-leg-fat">脂肪量</span>
             <div class="input-wrap"><input class="data-input" id="f-right-leg-fat" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">kg</span></div>
           </div>
@@ -226,6 +232,10 @@ canvas { width: 100% !important; }
       <div class="part-card">
         <div class="part-title" id="t-left-leg">左脚</div>
         <div class="part-row">
+          <div class="input-group">
+            <span class="input-label">脂肪量%</span>
+            <div class="input-wrap"><input class="data-input" id="f-left-leg-fat-pct" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">%</span></div>
+          </div>
           <div class="input-group">
             <span class="input-label" id="t-left-leg-fat">脂肪量</span>
             <div class="input-wrap"><input class="data-input" id="f-left-leg-fat" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">kg</span></div>
@@ -241,6 +251,10 @@ canvas { width: 100% !important; }
         <div class="part-title" id="t-right-arm">右腕</div>
         <div class="part-row">
           <div class="input-group">
+            <span class="input-label">脂肪量%</span>
+            <div class="input-wrap"><input class="data-input" id="f-right-arm-fat-pct" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">%</span></div>
+          </div>
+          <div class="input-group">
             <span class="input-label" id="t-right-arm-fat">脂肪量</span>
             <div class="input-wrap"><input class="data-input" id="f-right-arm-fat" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">kg</span></div>
           </div>
@@ -254,6 +268,10 @@ canvas { width: 100% !important; }
       <div class="part-card">
         <div class="part-title" id="t-left-arm">左腕</div>
         <div class="part-row">
+          <div class="input-group">
+            <span class="input-label">脂肪量%</span>
+            <div class="input-wrap"><input class="data-input" id="f-left-arm-fat-pct" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">%</span></div>
+          </div>
           <div class="input-group">
             <span class="input-label" id="t-left-arm-fat">脂肪量</span>
             <div class="input-wrap"><input class="data-input" id="f-left-arm-fat" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">kg</span></div>
@@ -269,6 +287,10 @@ canvas { width: 100% !important; }
         <div class="part-title" id="t-trunk">胴体</div>
         <div class="input-row" style="margin-bottom:0">
           <div class="input-group">
+            <span class="input-label">脂肪量%</span>
+            <div class="input-wrap"><input class="data-input" id="f-trunk-fat-pct" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">%</span></div>
+          </div>
+          <div class="input-group">
             <span class="input-label" id="t-trunk-fat">脂肪量</span>
             <div class="input-wrap"><input class="data-input" id="f-trunk-fat" type="number" inputmode="decimal" step="0.1" placeholder="0.0"><span class="input-unit">kg</span></div>
           </div>
@@ -281,6 +303,9 @@ canvas { width: 100% !important; }
     </div>
   </div>
 
+  <div id="cancelEditArea" style="display:none;margin-bottom:8px;">
+    <button class="btn-danger" style="width:100%" onclick="cancelEdit()">✕ 変更をキャンセル</button>
+  </div>
   <button class="btn-primary" onclick="saveData()" id="t-save-btn">保存</button>
 </div>
 
@@ -380,7 +405,6 @@ var i18n = {
   "bmi": "BMI",
   "fat_pct": "体脂肪率",
   "fat_mass": "体脂肪量",
-  "obesity_pct": "%肥満度",
   "visceral_fat": "内臓脂肪率",
   "muscle_mass": "筋肉量",
   "bmr": "基礎代謝率",
@@ -432,18 +456,22 @@ var FIELDS = [
   { id: 'bmi', unit: '' },
   { id: 'fat-pct', unit: '%' },
   { id: 'fat-mass', unit: 'kg' },
-  { id: 'obesity-pct', unit: '%' },
   { id: 'visceral-fat', unit: '' },
   { id: 'muscle-mass', unit: 'kg' },
   { id: 'bmr', unit: 'kcal' },
+  { id: 'right-leg-fat-pct', unit: '%' },
   { id: 'right-leg-fat', unit: 'kg' },
   { id: 'right-leg-muscle', unit: 'kg' },
+  { id: 'left-leg-fat-pct', unit: '%' },
   { id: 'left-leg-fat', unit: 'kg' },
   { id: 'left-leg-muscle', unit: 'kg' },
+  { id: 'right-arm-fat-pct', unit: '%' },
   { id: 'right-arm-fat', unit: 'kg' },
   { id: 'right-arm-muscle', unit: 'kg' },
+  { id: 'left-arm-fat-pct', unit: '%' },
   { id: 'left-arm-fat', unit: 'kg' },
   { id: 'left-arm-muscle', unit: 'kg' },
+  { id: 'trunk-fat-pct', unit: '%' },
   { id: 'trunk-fat', unit: 'kg' },
   { id: 'trunk-muscle', unit: 'kg' },
 ];
@@ -482,7 +510,6 @@ function applyI18n() {
     't-bmi': 'bmi',
     't-fat-pct': 'fat_pct',
     't-fat-mass': 'fat_mass',
-    't-obesity-pct': 'obesity_pct',
     't-visceral-fat': 'visceral_fat',
     't-muscle-mass': 'muscle_mass',
     't-bmr': 'bmr',
@@ -572,7 +599,7 @@ function loadRecords(callback) {
 }
 
 function saveRecords(newRec) {
-  var FIELDS_ORDER = ['id','date','weight','bmi','fat-pct','fat-mass','obesity-pct','visceral-fat','muscle-mass','bmr','right-leg-fat','right-leg-muscle','left-leg-fat','left-leg-muscle','right-arm-fat','right-arm-muscle','left-arm-fat','left-arm-muscle','trunk-fat','trunk-muscle'];
+  var FIELDS_ORDER = ['id','date','weight','bmi','fat-pct','fat-mass','visceral-fat','muscle-mass','bmr','right-leg-fat-pct','right-leg-fat','right-leg-muscle','left-leg-fat-pct','left-leg-fat','left-leg-muscle','right-arm-fat-pct','right-arm-fat','right-arm-muscle','left-arm-fat-pct','left-arm-fat','left-arm-muscle','trunk-fat-pct','trunk-fat','trunk-muscle'];
   var row = FIELDS_ORDER.map(function(k) { return newRec[k] != null ? String(newRec[k]) : ''; });
   fetch(GAS_URL, {
     method: 'POST',
@@ -592,10 +619,10 @@ function initInputValidation() {
       var char = String.fromCharCode(e.which);
       if (!/[0-9.]/.test(char)) e.preventDefault();
     });
-    el.addEventListener("input", function() {
-      this.value = this.value.replace(/[^0-9.]/g, "");
-      var parts = this.value.split(".");
-      if (parts.length > 2) this.value = parts[0] + "." + parts.slice(1).join("");
+    // paste時のみチェック（カーソル位置を変えないためinputイベントは使わない）
+    el.addEventListener("paste", function(e) {
+      var pasted = (e.clipboardData || window.clipboardData).getData('text');
+      if (!/^[0-9.]*$/.test(pasted)) e.preventDefault();
     });
   });
 }
@@ -604,7 +631,8 @@ function saveData() {
   var date = document.getElementById('inputDate').value;
   if (!date) { alert('測定日を入力してください'); return; }
 
-  var rec = { id: editingId ? editingId : Date.now(), date: date };
+  var time = document.getElementById('inputTime').value;
+  var rec = { id: editingId ? editingId : Date.now(), date: date, time: time };
   FIELDS.forEach(function(f) {
     var el = document.getElementById('f-' + f.id);
     rec[f.id] = el ? (el.value !== '' ? parseFloat(el.value) : null) : null;
@@ -636,6 +664,8 @@ function clearForm() {
   editingId = null;
   document.getElementById('editingLabel').style.display = 'none';
   document.getElementById('editingDateText').textContent = '';
+  document.getElementById('cancelEditArea').style.display = 'none';
+  document.getElementById('inputTime').value = '';
   FIELDS.forEach(function(f) {
     var el = document.getElementById('f-' + f.id);
     if (el) el.value = '';
@@ -689,7 +719,6 @@ function openModal(id) {
     'bmi': 'BMI',
     'fat-pct': t('fat_pct') + ' (%)',
     'fat-mass': t('fat_mass') + ' (kg)',
-    'obesity-pct': t('obesity_pct') + ' (%)',
     'visceral-fat': t('visceral_fat'),
     'muscle-mass': t('muscle_mass') + ' (kg)',
     'bmr': t('bmr') + ' (kcal)',
@@ -765,6 +794,10 @@ function editData() {
   // 編集中ラベルを表示
   document.getElementById('editingLabel').style.display = 'block';
   document.getElementById('editingDateText').textContent = dateStr;
+  document.getElementById('cancelEditArea').style.display = 'block';
+
+  // 時刻をセット
+  if (rec.time) document.getElementById('inputTime').value = rec.time;
 
   FIELDS.forEach(function(f) {
     var el = document.getElementById('f-' + f.id);
@@ -778,6 +811,11 @@ function editData() {
   document.getElementById('modalOverlay').classList.remove('active');
   currentModalId = null;
   switchTab('input');
+}
+
+function cancelEdit() {
+  clearForm();
+  document.getElementById('inputDate').value = getTodayStr();
 }
 
 function rewriteSheet() {
@@ -942,7 +980,7 @@ function analyzeImage(base64Data, mimeType, idx, callback) {
     return;
   }
 
-  var prompt = 'この画像は体組成計アプリのデータ画面です。以下の項目の数値を読み取ってJSON形式のみで返してください。項目が見つからない場合はnullにしてください。日付と時刻も読み取ってください。\n\n返却形式（JSONのみ、前後に余計なテキスト不要）:\n{"date":"YYYY-MM-DD","time":"HH:MM","weight":null,"bmi":null,"fat-pct":null,"fat-mass":null,"obesity-pct":null,"visceral-fat":null,"muscle-mass":null,"bmr":null,"right-leg-fat":null,"right-leg-muscle":null,"left-leg-fat":null,"left-leg-muscle":null,"right-arm-fat":null,"right-arm-muscle":null,"left-arm-fat":null,"left-arm-muscle":null,"trunk-fat":null,"trunk-muscle":null}';
+  var prompt = 'この画像は体組成計アプリ（mywellness）のデータ画面です。画面に表示されているすべての数値を注意深く読み取り、以下のJSON形式のみで返してください。項目が見つからない場合はnullにしてください。\n\n対応表：\n- 体重(kg) → weight\n- BMI → bmi\n- 体脂肪率%(%) → fat-pct\n- 体脂肪量(BFM)(kg) → fat-mass\n- 内臓脂肪率 → visceral-fat\n- 筋肉量(kg) → muscle-mass\n- 基礎代謝率(BMR)(kcal) → bmr\n- %右脚脂肪量(%) → right-leg-fat-pct\n- 右脚脂肪量(kg) → right-leg-fat\n- 右脚筋肉量(kg) → right-leg-muscle\n- %左脚脂肪量(%) → left-leg-fat-pct\n- 左脚脂肪量(kg) → left-leg-fat\n- 左脚筋肉量(kg) → left-leg-muscle\n- %右腕脂肪量(%) → right-arm-fat-pct\n- 右腕脂肪量(kg) → right-arm-fat\n- 右腕筋肉量(kg) → right-arm-muscle\n- %左腕脂肪量(%) → left-arm-fat-pct\n- 左腕脂肪量(kg) → left-arm-fat\n- 左腕筋肉量(kg) → left-arm-muscle\n- %体幹脂肪量(%) または %胴体脂肪量(%) → trunk-fat-pct\n- 胴体脂肪量(kg) または 体幹脂肪量(kg) → trunk-fat\n- 胴体筋肉量(kg) または 体幹筋肉量(kg) → trunk-muscle\n\n返却形式（JSONのみ、前後に余計なテキスト不要）:\n{"date":"YYYY-MM-DD","time":"HH:MM","weight":null,"bmi":null,"fat-pct":null,"fat-mass":null,"visceral-fat":null,"muscle-mass":null,"bmr":null,"right-leg-fat-pct":null,"right-leg-fat":null,"right-leg-muscle":null,"left-leg-fat-pct":null,"left-leg-fat":null,"left-leg-muscle":null,"right-arm-fat-pct":null,"right-arm-fat":null,"right-arm-muscle":null,"left-arm-fat-pct":null,"left-arm-fat":null,"left-arm-muscle":null,"trunk-fat-pct":null,"trunk-fat":null,"trunk-muscle":null}';
 
   var body = JSON.stringify({
     model: 'claude-sonnet-4-5',
@@ -1001,7 +1039,7 @@ function analyzeImage(base64Data, mimeType, idx, callback) {
 function mergeRecords(records) {
   // 複数レコードを1つにマージ（nullでない値を優先）
   var merged = { id: Date.now(), date: null, time: null };
-  var FIELDS_ORDER = ['weight','bmi','fat-pct','fat-mass','obesity-pct','visceral-fat','muscle-mass','bmr','right-leg-fat','right-leg-muscle','left-leg-fat','left-leg-muscle','right-arm-fat','right-arm-muscle','left-arm-fat','left-arm-muscle','trunk-fat','trunk-muscle'];
+  var FIELDS_ORDER = ['weight','bmi','fat-pct','fat-mass','visceral-fat','muscle-mass','bmr','right-leg-fat-pct','right-leg-fat','right-leg-muscle','left-leg-fat-pct','left-leg-fat','left-leg-muscle','right-arm-fat-pct','right-arm-fat','right-arm-muscle','left-arm-fat-pct','left-arm-fat','left-arm-muscle','trunk-fat-pct','trunk-fat','trunk-muscle'];
   FIELDS_ORDER.forEach(function(k) { merged[k] = null; });
 
   records.forEach(function(rec) {
@@ -1024,16 +1062,16 @@ function showAnalyzeResults() {
   var labelMap = {
     'weight': t('weight') + ' (kg)', 'bmi': 'BMI',
     'fat-pct': t('fat_pct') + ' (%)', 'fat-mass': t('fat_mass') + ' (kg)',
-    'obesity-pct': t('obesity_pct') + ' (%)', 'visceral-fat': t('visceral_fat'),
+    'visceral-fat': t('visceral_fat'),
     'muscle-mass': t('muscle_mass') + ' (kg)', 'bmr': t('bmr') + ' (kcal)',
-    'right-leg-fat': t('right_leg_fat') + ' (kg)', 'right-leg-muscle': t('right_leg_muscle') + ' (kg)',
-    'left-leg-fat': t('left_leg_fat') + ' (kg)', 'left-leg-muscle': t('left_leg_muscle') + ' (kg)',
-    'right-arm-fat': t('right_arm_fat') + ' (kg)', 'right-arm-muscle': t('right_arm_muscle') + ' (kg)',
-    'left-arm-fat': t('left_arm_fat') + ' (kg)', 'left-arm-muscle': t('left_arm_muscle') + ' (kg)',
-    'trunk-fat': t('trunk_fat') + ' (kg)', 'trunk-muscle': t('trunk_muscle') + ' (kg)',
+    'right-leg-fat-pct': '右脚 脂肪量%(%)', 'right-leg-fat': t('right_leg_fat') + ' (kg)', 'right-leg-muscle': t('right_leg_muscle') + ' (kg)',
+    'left-leg-fat-pct': '左脚 脂肪量%(%)', 'left-leg-fat': t('left_leg_fat') + ' (kg)', 'left-leg-muscle': t('left_leg_muscle') + ' (kg)',
+    'right-arm-fat-pct': '右腕 脂肪量%(%)', 'right-arm-fat': t('right_arm_fat') + ' (kg)', 'right-arm-muscle': t('right_arm_muscle') + ' (kg)',
+    'left-arm-fat-pct': '左腕 脂肪量%(%)', 'left-arm-fat': t('left_arm_fat') + ' (kg)', 'left-arm-muscle': t('left_arm_muscle') + ' (kg)',
+    'trunk-fat-pct': '胴体 脂肪量%(%)', 'trunk-fat': t('trunk_fat') + ' (kg)', 'trunk-muscle': t('trunk_muscle') + ' (kg)',
   };
 
-  var FIELDS_ORDER = ['weight','bmi','fat-pct','fat-mass','obesity-pct','visceral-fat','muscle-mass','bmr','right-leg-fat','right-leg-muscle','left-leg-fat','left-leg-muscle','right-arm-fat','right-arm-muscle','left-arm-fat','left-arm-muscle','trunk-fat','trunk-muscle'];
+  var FIELDS_ORDER = ['weight','bmi','fat-pct','fat-mass','visceral-fat','muscle-mass','bmr','right-leg-fat-pct','right-leg-fat','right-leg-muscle','left-leg-fat-pct','left-leg-fat','left-leg-muscle','right-arm-fat-pct','right-arm-fat','right-arm-muscle','left-arm-fat-pct','left-arm-fat','left-arm-muscle','trunk-fat-pct','trunk-fat','trunk-muscle'];
   var html = '<div style="margin-bottom:10px;font-size:14px;font-weight:700;color:var(--text)">📅 ' + (merged.date || '-') + ' ' + (merged.time || '') + '</div>';
   html += '<div class="modal-detail-grid">';
   FIELDS_ORDER.forEach(function(k) {
