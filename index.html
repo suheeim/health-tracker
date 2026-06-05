@@ -627,7 +627,7 @@ function saveRecords(newRec) {
     body: JSON.stringify({ action: 'save', row: row, headers: FIELDS_ORDER })
   })
   .then(function(r) { return r.json(); })
-  .then(function() { alert(t('save_success')); clearForm(); loadRecords(function() {}); })
+  .then(function() { alert(t('save_success')); clearForm(); loadRecords(function() { renderHistory(); renderGraphTabs(); }); })
   .catch(function(e) { alert('保存エラー: ' + e.message); });
 }
 
