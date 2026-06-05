@@ -568,6 +568,20 @@ function saveRecords(newRec) {
 
 var editingId = null;
 
+function initInputValidation() {
+  document.querySelectorAll(".data-input").forEach(function(el) {
+    el.addEventListener("keypress", function(e) {
+      var char = String.fromCharCode(e.which);
+      if (!/[0-9.]/.test(char)) e.preventDefault();
+    });
+    el.addEventListener("input", function() {
+      this.value = this.value.replace(/[^0-9.]/g, "");
+      var parts = this.value.split(".");
+      if (parts.length > 2) this.value = parts[0] + "." + parts.slice(1).join("");
+    });
+  });
+}
+
 function saveData() {
   var date = document.getElementById('inputDate').value;
   if (!date) { alert('測定日を入力してください'); return; }
@@ -597,6 +611,11 @@ function saveData() {
 }
 
 function clearForm() {
+  var dateEl = document.getElementById('inputDate');
+  dateEl.readOnly = false;
+  dateEl.style.background = '';
+  dateEl.style.color = '';
+  editingId = null;
   FIELDS.forEach(function(f) {
     var el = document.getElementById('f-' + f.id);
     if (el) el.value = '';
@@ -709,7 +728,12 @@ function editData() {
   if (!rec) return;
 
   // 入力タブに値をセット
-  document.getElementById('inputDate').value = rec.date || '';
+  var dateEl = document.getElementById('inputDate');
+  dateEl.value = rec.date || '';
+  dateEl.readOnly = true;
+  dateEl.style.background = 'var(--surface2)';
+  dateEl.style.color = 'var(--text3)';
+
   FIELDS.forEach(function(f) {
     var el = document.getElementById('f-' + f.id);
     if (el) el.value = rec[f.id] != null ? rec[f.id] : '';
@@ -722,7 +746,6 @@ function editData() {
   document.getElementById('modalOverlay').classList.remove('active');
   currentModalId = null;
   switchTab('input');
-  alert('データを読み込みました。編集後「保存」を押してください。');
 }
 
 function rewriteSheet() {
@@ -800,6 +823,7 @@ window.addEventListener('load', function() {
   loadI18n(applyI18n);
   loadRecords(function() {});
   loadApiKey();
+  initInputValidation();
 });
 
 // ===== アップロード・解析機能 =====
