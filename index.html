@@ -132,14 +132,13 @@ canvas { width: 100% !important; }
   <h1 id="t-app-name">💪 体組成記録</h1>
 </div>
 <div class="tab-bar">
-  <button class="tab-btn active" id="tab-input" onclick="switchTab('input')"><span id="t-tab-input">入力</span></button>
-  <button class="tab-btn" id="tab-history" onclick="switchTab('history')"><span id="t-tab-history">履歴</span></button>
+  <button class="tab-btn active" id="tab-history" onclick="switchTab('history')"><span id="t-tab-history">結果</span></button>
   <button class="tab-btn" id="tab-graph" onclick="switchTab('graph')"><span id="t-tab-graph">グラフ</span></button>
   <button class="tab-btn" id="tab-upload" onclick="switchTab('upload')"><span id="t-tab-upload">アップロード</span></button>
 </div>
 
-<!-- 入力画面 -->
-<div id="screen-input" class="screen active">
+<!-- 入力画面（タブからは外し、解析結果の確認・修正画面として使用） -->
+<div id="screen-input" class="screen">
   <!-- 日付 -->
   <div class="card">
     <div id="dateTimeInput" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -309,13 +308,13 @@ canvas { width: 100% !important; }
   </div>
 
   <div id="cancelEditArea" style="display:none;margin-bottom:8px;">
-    <button class="btn-danger" style="width:100%" onclick="cancelEdit()">✕ 変更をキャンセル</button>
+    <button class="btn-danger" style="width:100%" onclick="cancelEdit()">✕ キャンセル</button>
   </div>
   <button class="btn-primary" onclick="saveData()" id="t-save-btn">保存</button>
 </div>
 
-<!-- 履歴画面 -->
-<div id="screen-history" class="screen">
+<!-- 結果画面（過去レコード一覧） -->
+<div id="screen-history" class="screen active">
   <div id="historyLoading" style="text-align:center;padding:40px;color:var(--text3);font-size:14px;">
     <div style="font-size:32px;margin-bottom:10px;">⏳</div>
     データを読み込み中...
@@ -385,7 +384,7 @@ var i18n = {
   "app_title": "体組成記録",
   "app_name": "💪 体組成記録",
   "tab_input": "入力",
-  "tab_history": "履歴",
+  "tab_history": "結果",
   "tab_graph": "グラフ",
   "date_label": "測定日",
   "save_btn": "保存",
@@ -495,7 +494,6 @@ function applyI18n() {
   document.title = t('app_title');
   var map = {
     't-app-name': 'app_name',
-    't-tab-input': 'tab_input',
     't-tab-history': 'tab_history',
     't-tab-graph': 'tab_graph',
     't-date-label': 'date_label',
@@ -541,7 +539,9 @@ function applyI18n() {
 function switchTab(name) {
   ['input','history','graph','upload'].forEach(function(n) {
     document.getElementById('screen-' + n).classList.toggle('active', n === name);
-    document.getElementById('tab-' + n).classList.toggle('active', n === name);
+    // 入力タブはタブ一覧から外しているため、ボタンが存在する場合のみ切替
+    var tabBtn = document.getElementById('tab-' + n);
+    if (tabBtn) tabBtn.classList.toggle('active', n === name);
   });
   if (name === 'history') {
     if (records.length === 0) {
@@ -613,7 +613,7 @@ function saveRecords(newRec) {
     body: JSON.stringify({ action: 'save', row: row, headers: FIELDS_ORDER })
   })
   .then(function(r) { return r.json(); })
-  .then(function() { alert(t('save_success')); clearForm(); loadRecords(function() { renderHistory(); renderGraphTabs(); }); })
+  .then(function() { alert(t('save_success')); clearForm(); switchTab('history'); loadRecords(function() { renderHistory(); renderGraphTabs(); }); })
   .catch(function(e) { alert('保存エラー: ' + e.message); });
 }
 
@@ -841,6 +841,7 @@ function editData() {
 function cancelEdit() {
   clearForm();
   document.getElementById('inputDate').value = getTodayStr();
+  switchTab('history');
 }
 
 function rewriteSheet() {
@@ -1103,7 +1104,8 @@ function showAnalyzeResults() {
   document.getElementById('dateTimeLabel').style.display = 'none';
   document.getElementById('editingDateText').textContent = '';
   document.getElementById('editingTimeText').textContent = '';
-  document.getElementById('cancelEditArea').style.display = 'none';
+  // 確認・修正画面のキャンセル（戻る）手段を表示
+  document.getElementById('cancelEditArea').style.display = 'block';
 
   // 日付・時刻（解析値があれば反映、無ければ今日/現在時刻）
   dateEl.value = (merged.date && merged.date !== 'YYYY-MM-DD') ? merged.date : getTodayStr();
