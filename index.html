@@ -113,17 +113,18 @@ canvas { width: 100% !important; }
 .status-done { background: var(--accent-light); color: var(--accent); }
 .status-error { background: #FEE2E2; color: var(--danger); }
 
-/* 詳細モーダル */
-.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; }
-.modal-overlay.active { display: flex; align-items: flex-end; }
-.modal { background: var(--surface); border-radius: 24px 24px 0 0; padding: 20px; width: 100%; max-height: 80vh; overflow-y: auto; }
-.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.modal-title { font-size: 16px; font-weight: 700; }
-.modal-close { background: var(--surface2); border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 16px; }
-.modal-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.modal-detail-item { background: var(--surface2); border-radius: var(--radius-sm); padding: 10px; }
-.modal-detail-label { font-size: 10px; color: var(--text3); margin-bottom: 2px; }
-.modal-detail-value { font-size: 15px; font-weight: 700; color: var(--primary); }
+/* 詳細画面 */
+.detail-header { display: flex; justify-content: space-between; align-items: center; }
+.detail-title { font-size: 18px; font-weight: 700; color: var(--text); }
+.detail-back { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 12px; font-size: 13px; font-weight: 700; color: var(--text2); cursor: pointer; font-family: 'Noto Sans JP', sans-serif; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.detail-item { display: flex; flex-direction: column; gap: 4px; }
+.detail-label { font-size: 11px; font-weight: 700; color: var(--text2); }
+.detail-value { font-size: 16px; font-weight: 700; color: var(--primary); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 6px; text-align: center; }
+.detail-actions { display: flex; gap: 8px; margin-top: 4px; }
+.btn-action { flex: 1; padding: 15px; color: #fff; border: none; border-radius: var(--radius); font-size: 16px; font-weight: 700; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; }
+.btn-action.edit { background: var(--primary); }
+.btn-action.delete { background: var(--danger); }
 </style>
 </head>
 <body>
@@ -363,18 +364,18 @@ canvas { width: 100% !important; }
   <div id="imagePreviewList"></div>
 </div>
 
-<!-- 詳細モーダル -->
-<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title" id="modalTitle"></span>
-      <button class="modal-close" onclick="closeModal()">✕</button>
+<!-- 詳細画面（レコード詳細・読み取り専用） -->
+<div id="screen-detail" class="screen">
+  <div class="card">
+    <div class="detail-header">
+      <span class="detail-title" id="detailTitle"></span>
+      <button class="detail-back" onclick="switchTab('history')">← 戻る</button>
     </div>
-    <div id="modalContent"></div>
-    <div style="margin-top:14px;display:flex;gap:8px">
-      <button class="btn-primary" style="flex:1" onclick="editData()">✏️ 変更</button>
-      <button class="btn-danger" style="flex:1" onclick="deleteData()" id="t-delete-btn">削除</button>
-    </div>
+  </div>
+  <div id="detailContent"></div>
+  <div class="detail-actions">
+    <button class="btn-action edit" onclick="editData()">✏️ 変更</button>
+    <button class="btn-action delete" onclick="deleteData()" id="t-delete-btn">削除</button>
   </div>
 </div>
 
@@ -537,7 +538,7 @@ function applyI18n() {
 }
 
 function switchTab(name) {
-  ['input','history','graph','upload'].forEach(function(n) {
+  ['input','history','graph','upload','detail'].forEach(function(n) {
     document.getElementById('screen-' + n).classList.toggle('active', n === name);
     // 入力タブはタブ一覧から外しているため、ボタンが存在する場合のみ切替
     var tabBtn = document.getElementById('tab-' + n);
@@ -724,7 +725,7 @@ function renderHistory() {
       return '<span class="history-diff diff-same">－</span>';
     }
 
-    html += '<div class="history-item" onclick="openModal(\'' + rec.id + '\')">'
+    html += '<div class="history-item" onclick="openDetail(\'' + rec.id + '\')">'
       + '<div class="history-date">'
       + '<span>' + rec.date.replace(/-/g, '/') + '</span>'
       + (i === 0 ? '<span class="history-badge">' + t('latest_label') + '</span>' : '')
@@ -739,52 +740,62 @@ function renderHistory() {
   list.innerHTML = html;
 }
 
-function openModal(id) {
+// 1項目（ラベル＋読み取り専用の値）のHTMLを生成
+function detailItemHtml(rec, id, label, unit) {
+  var v = rec[id];
+  var val = (v != null && v !== '') ? (v + (unit ? ' ' + unit : '')) : '-';
+  return '<div class="detail-item">'
+    + '<div class="detail-label">' + label + '</div>'
+    + '<div class="detail-value">' + val + '</div>'
+    + '</div>';
+}
+
+// 部位カード（脂肪量%・脂肪量・筋肉量）のHTMLを生成
+function detailPartHtml(rec, prefix, title, fullWidth) {
+  var style = fullWidth ? ' style="grid-column:1/-1"' : '';
+  var bodyStyle = fullWidth
+    ? 'display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;'
+    : 'display:flex;flex-direction:column;gap:6px;';
+  return '<div class="part-card"' + style + '>'
+    + '<div class="part-title">' + title + '</div>'
+    + '<div style="' + bodyStyle + '">'
+    + detailItemHtml(rec, prefix + '-fat-pct', '脂肪量%', '%')
+    + detailItemHtml(rec, prefix + '-fat', '脂肪量', 'kg')
+    + detailItemHtml(rec, prefix + '-muscle', '筋肉量', 'kg')
+    + '</div></div>';
+}
+
+// 入力画面と同じカード構成で詳細HTMLを組み立てる
+function buildDetailHtml(rec) {
+  var h = '';
+  // 基本データ
+  h += '<div class="card"><div class="section-title">基本データ</div><div class="detail-grid">'
+    + detailItemHtml(rec, 'weight', t('weight'), 'kg')
+    + detailItemHtml(rec, 'bmi', 'BMI', '')
+    + detailItemHtml(rec, 'fat-pct', t('fat_pct'), '%')
+    + detailItemHtml(rec, 'fat-mass', t('fat_mass'), 'kg')
+    + detailItemHtml(rec, 'visceral-fat', t('visceral_fat'), '')
+    + detailItemHtml(rec, 'muscle-mass', t('muscle_mass'), 'kg')
+    + detailItemHtml(rec, 'bmr', t('bmr'), 'kcal')
+    + '</div></div>';
+  // 部位別データ
+  h += '<div class="card"><div class="section-title">' + t('section_parts') + '</div><div class="parts-grid">'
+    + detailPartHtml(rec, 'right-leg', t('right_leg'), false)
+    + detailPartHtml(rec, 'left-leg', t('left_leg'), false)
+    + detailPartHtml(rec, 'right-arm', t('right_arm'), false)
+    + detailPartHtml(rec, 'left-arm', t('left_arm'), false)
+    + detailPartHtml(rec, 'trunk', t('trunk'), true)
+    + '</div></div>';
+  return h;
+}
+
+function openDetail(id) {
   currentModalId = id;
   var rec = records.find(function(r) { return String(r.id) === String(id); });
   if (!rec) return;
-  document.getElementById('modalTitle').textContent = rec.date.replace(/-/g, '/');
-  var labelMap = {
-    'weight': t('weight') + ' (kg)',
-    'bmi': 'BMI',
-    'fat-pct': t('fat_pct') + ' (%)',
-    'fat-mass': t('fat_mass') + ' (kg)',
-    'visceral-fat': t('visceral_fat'),
-    'muscle-mass': t('muscle_mass') + ' (kg)',
-    'bmr': t('bmr') + ' (kcal)',
-    'right-leg-fat-pct': '右脚 脂肪量% (%)',
-    'right-leg-fat': t('right_leg_fat') + ' (kg)',
-    'right-leg-muscle': t('right_leg_muscle') + ' (kg)',
-    'left-leg-fat-pct': '左脚 脂肪量% (%)',
-    'left-leg-fat': t('left_leg_fat') + ' (kg)',
-    'left-leg-muscle': t('left_leg_muscle') + ' (kg)',
-    'right-arm-fat-pct': '右腕 脂肪量% (%)',
-    'right-arm-fat': t('right_arm_fat') + ' (kg)',
-    'right-arm-muscle': t('right_arm_muscle') + ' (kg)',
-    'left-arm-fat-pct': '左腕 脂肪量% (%)',
-    'left-arm-fat': t('left_arm_fat') + ' (kg)',
-    'left-arm-muscle': t('left_arm_muscle') + ' (kg)',
-    'trunk-fat-pct': '胴体 脂肪量% (%)',
-    'trunk-fat': t('trunk_fat') + ' (kg)',
-    'trunk-muscle': t('trunk_muscle') + ' (kg)',
-  };
-  var html = '<div class="modal-detail-grid">';
-  FIELDS.forEach(function(f) {
-    var val = rec[f.id];
-    html += '<div class="modal-detail-item">'
-      + '<div class="modal-detail-label">' + (labelMap[f.id] || f.id) + '</div>'
-      + '<div class="modal-detail-value">' + (val != null ? val : '-') + '</div>'
-      + '</div>';
-  });
-  html += '</div>';
-  document.getElementById('modalContent').innerHTML = html;
-  document.getElementById('modalOverlay').classList.add('active');
-}
-
-function closeModal(e) {
-  if (e && e.target !== document.getElementById('modalOverlay')) return;
-  document.getElementById('modalOverlay').classList.remove('active');
-  currentModalId = null;
+  document.getElementById('detailTitle').textContent = rec.date.replace(/-/g, '/');
+  document.getElementById('detailContent').innerHTML = buildDetailHtml(rec);
+  switchTab('detail');
 }
 
 function deleteData() {
@@ -799,9 +810,9 @@ function deleteData() {
   .then(function(r) { return r.json(); })
   .then(function() {
     records = records.filter(function(r) { return String(r.id) !== String(deleteId); });
-    document.getElementById('modalOverlay').classList.remove('active');
     currentModalId = null;
     renderHistory();
+    switchTab('history');
   })
   .catch(function(e) { alert('削除エラー: ' + e.message); });
 }
@@ -844,8 +855,7 @@ function editData() {
   // 編集中のIDを保持
   editingId = String(rec.id);
 
-  // モーダルを閉じて入力タブへ
-  document.getElementById('modalOverlay').classList.remove('active');
+  // 詳細画面から入力画面へ遷移
   currentModalId = null;
   switchTab('input');
 }
