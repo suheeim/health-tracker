@@ -1147,13 +1147,12 @@ function showAnalyzeResults() {
 }
 </script>
 <script>
-// ServiceWorkerを完全に無効化・既存も全解除
+// Service Worker登録（ネットワーク優先・オフライン保険）
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(function(regs) {
-    regs.forEach(function(r) { r.unregister(); });
-  });
-  caches.keys().then(function(keys) {
-    keys.forEach(function(k) { caches.delete(k); });
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('sw.js').catch(function(e) {
+      console.error('SW registration failed:', e);
+    });
   });
 }
 </script>
