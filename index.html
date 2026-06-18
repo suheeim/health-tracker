@@ -1060,6 +1060,8 @@ function analyzeImage(base64Data, mimeType, idx, callback) {
     var text = data.content && data.content[0] ? data.content[0].text : '';
     var json = text.replace(/```json|```/g, '').trim();
     var rec = JSON.parse(json);
+    console.log('画像' + idx + ' 生レスポンス:', text); // DEBUG: trunk-fat-pct切り分け用（確認後削除）
+    console.log('画像' + idx + ' trunk-fat-pct:', rec['trunk-fat-pct']); // DEBUG（確認後削除）
     rec.id = Date.now() + idx;
     var statusEl = document.getElementById('status-' + idx);
     if (statusEl) {
@@ -1092,6 +1094,7 @@ function mergeRecords(records) {
       if (merged[k] == null && rec[k] != null) merged[k] = rec[k];
     });
   });
+  console.log('マージ後 trunk-fat-pct:', merged['trunk-fat-pct']); // DEBUG（確認後削除）
   return merged;
 }
 
