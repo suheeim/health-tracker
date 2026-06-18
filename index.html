@@ -362,18 +362,6 @@ canvas { width: 100% !important; }
 
   <!-- プレビューリスト -->
   <div id="imagePreviewList"></div>
-
-  <!-- 解析結果 -->
-  <div id="analyzeResult" style="display:none">
-    <div class="card" style="border:2px solid var(--accent)">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <span style="font-size:18px">✅</span>
-        <span style="font-size:14px;font-weight:700;color:var(--accent)" id="t-analyze-done">解析完了！</span>
-      </div>
-      <div id="analyzeDataPreview"></div>
-    </div>
-    <button class="btn-primary" onclick="saveAnalyzedData()" id="t-upload-save-btn">✅ 確認して保存</button>
-  </div>
 </div>
 
 <!-- 詳細モーダル -->
@@ -543,8 +531,6 @@ function applyI18n() {
     't-upload-title': 'upload_title',
     't-upload-desc': 'upload_desc',
     't-upload-btn': 'upload_btn',
-    't-analyze-done': 'analyze_done',
-    't-upload-save-btn': 'upload_save_btn',
   };
   Object.keys(map).forEach(function(id) {
     var el = document.getElementById(id);
@@ -947,7 +933,6 @@ function handleImages(files) {
   var list = document.getElementById('imagePreviewList');
   list.innerHTML = '';
   analyzedRecords = [];
-  document.getElementById('analyzeResult').style.display = 'none';
 
   var fileArr = Array.from(files);
   var pending = fileArr.length;
@@ -1060,8 +1045,6 @@ function analyzeImage(base64Data, mimeType, idx, callback) {
     var text = data.content && data.content[0] ? data.content[0].text : '';
     var json = text.replace(/```json|```/g, '').trim();
     var rec = JSON.parse(json);
-    console.log('画像' + idx + ' 生レスポンス:', text); // DEBUG: trunk-fat-pct切り分け用（確認後削除）
-    console.log('画像' + idx + ' trunk-fat-pct:', rec['trunk-fat-pct']); // DEBUG（確認後削除）
     rec.id = Date.now() + idx;
     var statusEl = document.getElementById('status-' + idx);
     if (statusEl) {
@@ -1094,7 +1077,6 @@ function mergeRecords(records) {
       if (merged[k] == null && rec[k] != null) merged[k] = rec[k];
     });
   });
-  console.log('マージ後 trunk-fat-pct:', merged['trunk-fat-pct']); // DEBUG（確認後削除）
   return merged;
 }
 
@@ -1105,66 +1087,36 @@ function showAnalyzeResults() {
   // 複数画像は1レコードにマージ
   var merged = mergeRecords(valid);
 
-  var labelMap = {
-    'weight': t('weight') + ' (kg)', 'bmi': 'BMI',
-    'fat-pct': t('fat_pct') + ' (%)', 'fat-mass': t('fat_mass') + ' (kg)',
-    'visceral-fat': t('visceral_fat'),
-    'muscle-mass': t('muscle_mass') + ' (kg)', 'bmr': t('bmr') + ' (kcal)',
-    'right-leg-fat-pct': '右脚 脂肪量%(%)', 'right-leg-fat': t('right_leg_fat') + ' (kg)', 'right-leg-muscle': t('right_leg_muscle') + ' (kg)',
-    'left-leg-fat-pct': '左脚 脂肪量%(%)', 'left-leg-fat': t('left_leg_fat') + ' (kg)', 'left-leg-muscle': t('left_leg_muscle') + ' (kg)',
-    'right-arm-fat-pct': '右腕 脂肪量%(%)', 'right-arm-fat': t('right_arm_fat') + ' (kg)', 'right-arm-muscle': t('right_arm_muscle') + ' (kg)',
-    'left-arm-fat-pct': '左腕 脂肪量%(%)', 'left-arm-fat': t('left_arm_fat') + ' (kg)', 'left-arm-muscle': t('left_arm_muscle') + ' (kg)',
-    'trunk-fat-pct': '胴体 脂肪量%(%)', 'trunk-fat': t('trunk_fat') + ' (kg)', 'trunk-muscle': t('trunk_muscle') + ' (kg)',
-  };
+  // 解析結果は「新規レコード」として入力画面に流し込む（既存レコードの編集ではない）
+  editingId = null;
+  pendingAnalyzedRecord = merged;
 
-  var FIELDS_ORDER = ['weight','bmi','fat-pct','fat-mass','visceral-fat','muscle-mass','bmr','right-leg-fat-pct','right-leg-fat','right-leg-muscle','left-leg-fat-pct','left-leg-fat','left-leg-muscle','right-arm-fat-pct','right-arm-fat','right-arm-muscle','left-arm-fat-pct','left-arm-fat','left-arm-muscle','trunk-fat-pct','trunk-fat','trunk-muscle'];
-  var html = '<div style="margin-bottom:10px;font-size:14px;font-weight:700;color:var(--text)">📅 ' + (merged.date || '-') + ' ' + (merged.time || '') + '</div>';
-  html += '<div class="modal-detail-grid">';
-  FIELDS_ORDER.forEach(function(k) {
-    html += '<div class="modal-detail-item">'
-      + '<div class="modal-detail-label">' + (labelMap[k] || k) + '</div>'
-      + '<div class="modal-detail-value">' + (merged[k] != null ? merged[k] : '-') + '</div>'
-      + '</div>';
+  // 入力タブへ切り替え
+  switchTab('input');
+
+  // 新規入力モードの日付・時刻UI（入力欄を表示し、編集用ラベルは隠す）
+  var dateEl = document.getElementById('inputDate');
+  dateEl.readOnly = false;
+  dateEl.style.background = '';
+  dateEl.style.color = '';
+  document.getElementById('dateTimeInput').style.display = 'flex';
+  document.getElementById('dateTimeLabel').style.display = 'none';
+  document.getElementById('editingDateText').textContent = '';
+  document.getElementById('editingTimeText').textContent = '';
+  document.getElementById('cancelEditArea').style.display = 'none';
+
+  // 日付・時刻（解析値があれば反映、無ければ今日/現在時刻）
+  dateEl.value = (merged.date && merged.date !== 'YYYY-MM-DD') ? merged.date : getTodayStr();
+  document.getElementById('inputTime').value = merged.time ? merged.time : getNowTimeStr();
+
+  // 数値データ（基本＋部位別）を各入力欄へ反映
+  FIELDS.forEach(function(f) {
+    var el = document.getElementById('f-' + f.id);
+    if (el) el.value = merged[f.id] != null ? merged[f.id] : '';
   });
-  html += '</div>';
 
-  document.getElementById('analyzeDataPreview').innerHTML = html;
-  document.getElementById('analyzeResult').style.display = 'block';
-}
-
-function saveAnalyzedData() {
-  var valid = analyzedRecords.filter(function(r) { return r !== null; });
-  if (valid.length === 0) return;
-
-  // 複数画像は1レコードにマージ
-  var merged = mergeRecords(valid);
-
-  // 日付・時刻が取れなかった場合は入力タブで入力してもらう
-  if (!merged.date || merged.date === 'YYYY-MM-DD') {
-    // 解析データを一時保存して入力タブへ
-    pendingAnalyzedRecord = merged;
-    switchTab('input');
-    document.getElementById('dateTimeInput').style.display = 'flex';
-    document.getElementById('dateTimeLabel').style.display = 'none';
-    document.getElementById('inputDate').value = getTodayStr();
-    document.getElementById('inputTime').value = getNowTimeStr();
-    // 数値データを入力欄にセット
-    FIELDS.forEach(function(f) {
-      var el = document.getElementById('f-' + f.id);
-      if (el) el.value = merged[f.id] != null ? merged[f.id] : '';
-    });
-    alert('日付・時刻を確認して「保存」ボタンを押してください。');
-    document.getElementById('imagePreviewList').innerHTML = '';
-    document.getElementById('analyzeResult').style.display = 'none';
-    document.getElementById('imageUpload').value = '';
-    analyzedRecords = [];
-    return;
-  }
-
-  saveRecords(merged);
-
+  // アップロード画面の表示をリセット
   document.getElementById('imagePreviewList').innerHTML = '';
-  document.getElementById('analyzeResult').style.display = 'none';
   document.getElementById('imageUpload').value = '';
   analyzedRecords = [];
 }
