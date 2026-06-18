@@ -563,6 +563,23 @@ function getNowTimeStr() {
   return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
 }
 
+// 日付文字列を YYYY-MM-DD（ハイフン区切り・ゼロ埋め）に正規化する。
+// 「2026/06/18」「2026/6/18」などスラッシュ区切りや1桁月日に対応。
+// 既に「2026-06-18」形式ならそのまま返す。変換できなければ '' を返す。
+function normalizeDateStr(v) {
+  if (typeof v !== 'string') return '';
+  // ISO形式（T含む）はJSTのYYYY-MM-DDへ変換
+  if (v.indexOf('T') !== -1) {
+    var dd = new Date(v);
+    if (isNaN(dd.getTime())) return '';
+    dd.setTime(dd.getTime() + 9 * 60 * 60 * 1000);
+    return dd.getFullYear() + '-' + String(dd.getMonth()+1).padStart(2,'0') + '-' + String(dd.getDate()).padStart(2,'0');
+  }
+  var m = v.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (!m) return '';
+  return m[1] + '-' + m[2].padStart(2,'0') + '-' + m[3].padStart(2,'0');
+}
+
 function loadRecords(callback) {
   fetch(GAS_URL + '?action=load')
     .then(function(r) { return r.json(); })
@@ -577,14 +594,9 @@ function loadRecords(callback) {
             if (h === 'id' || h === 'time') {
               rec[h] = row[i];
             } else if (h === 'date') {
-              // ISO形式をJSTのYYYY-MM-DDに変換
+              // ISO形式やスラッシュ区切りをYYYY-MM-DDに正規化（変換不能ならそのまま）
               var dv = row[i];
-              if (typeof dv === 'string' && dv.indexOf('T') !== -1) {
-                var dd = new Date(dv);
-                dd.setTime(dd.getTime() + 9 * 60 * 60 * 1000);
-                dv = dd.getFullYear() + '-' + String(dd.getMonth()+1).padStart(2,'0') + '-' + String(dd.getDate()).padStart(2,'0');
-              }
-              rec[h] = dv;
+              rec[h] = normalizeDateStr(dv) || dv;
             } else {
               rec[h] = parseFloat(row[i]);
             }
@@ -1108,7 +1120,8 @@ function showAnalyzeResults() {
   document.getElementById('cancelEditArea').style.display = 'block';
 
   // 日付・時刻（解析値があれば反映、無ければ今日/現在時刻）
-  dateEl.value = (merged.date && merged.date !== 'YYYY-MM-DD') ? merged.date : getTodayStr();
+  var normDate = (merged.date && merged.date !== 'YYYY-MM-DD') ? normalizeDateStr(merged.date) : '';
+  dateEl.value = normDate || getTodayStr();
   document.getElementById('inputTime').value = merged.time ? merged.time : getNowTimeStr();
 
   // 数値データ（基本＋部位別）を各入力欄へ反映
